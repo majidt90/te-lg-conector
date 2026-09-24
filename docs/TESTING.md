@@ -74,10 +74,16 @@ lifecycle, **U** = UI.
 
 ## What is verified without a device
 
-`python3 tools/verify.py` runs a 397-assertion JVM suite over the protocol layer
+`python3 tools/verify.py` runs a 429-assertion JVM suite over the protocol layer
 (the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
 the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
+Diagnostics and formatting are covered too: the log keeps its newest 600 entries
+under load, reports how many older ones it discarded (so "the app missed the
+moment it failed" is visible rather than guessed at), the export reads oldest
+first like a log file, and the sizes, rates, durations and percentages shown on
+every screen are asserted at their boundaries.
+
 The suite also hardened the XML layer after review: element lookup matched by
 prefix, so asking for `<Result>` could return the digits of `<ResultCode>`
 followed by the rest of the document, and a file name containing an unpaired

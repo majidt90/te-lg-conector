@@ -3,6 +3,7 @@ import com.lgmediabridge.compat.CompatResult;
 import com.lgmediabridge.compat.MediaCompat;
 import com.lgmediabridge.control.SoapClient;
 import com.lgmediabridge.control.TvDevice;
+import com.lgmediabridge.core.Formats;
 import com.lgmediabridge.core.Json;
 import com.lgmediabridge.core.LogBus;
 import com.lgmediabridge.core.LogEntry;
@@ -66,6 +67,9 @@ public final class MediaBridgeTests {
         area("HTTP range and time-seek maths (whether seeking works)");
         byteRanges();
         timeSeekRanges();
+
+        area("Diagnostics and formatting (what the user reads)");
+        diagnosticsAndFormatting();
 
         area("XML helpers (how phone and TV read each other)");
         xmlHelpers();
@@ -391,6 +395,74 @@ public final class MediaBridgeTests {
         long durationMs = 60_000L;
         long startBytes = 30_000L * totalBytes / durationMs;
         equal("time seek maps to the expected byte offset", 3_000_000L, startBytes);
+    }
+
+    // -------------------------------------------------- diagnostics + formats
+
+    private static void diagnosticsAndFormatting() {
+        // Sizes, rates and durations are on every screen; they must never read
+        // like a failure unless something really failed.
+        equal("zero bytes", "0 B", Formats.bytes(0));
+        equal("bytes below a kilobyte stay exact", "512 B", Formats.bytes(512));
+        equal("a kilobyte", "1.0 KB", Formats.bytes(1024));
+        equal("a megabyte", "1.0 MB", Formats.bytes(1024 * 1024));
+        equal("gigabytes get two decimals", "5.00 GB", Formats.bytes(5L * 1024 * 1024 * 1024));
+        equal("a negative size is shown as unknown, not as a huge number", "\u2014",
+                Formats.bytes(-1));
+        equal("a big video looks like a video", "700.0 MB",
+                Formats.bytes(734_003_200L));
+
+        equal("no throughput is shown as zero, not unknown", "0 B/s", Formats.rate(0));
+        equal("kilobytes per second", "2 KB/s", Formats.rate(2048));
+        equal("megabytes per second", "5.0 MB/s", Formats.rate(5 * 1024 * 1024));
+        equal("an unknown rate is a dash", "\u2014", Formats.rate(-5));
+
+        equal("bitrates use decimal units, as broadcasters do", "40.0 Mbps",
+                Formats.bitrate(40_000_000L));
+        equal("sub-megabit bitrate", "900 kbps", Formats.bitrate(900_000L));
+        equal("an unknown bitrate is a dash", "\u2014", Formats.bitrate(0));
+
+        equal("no duration is a dash, not 0:00", "\u2014", Formats.duration(0));
+        equal("short durations are minutes:seconds", "0:45", Formats.duration(45_000L));
+        equal("long durations gain an hours field", "2:03:04",
+                Formats.duration((2 * 3600 + 3 * 60 + 4) * 1000L));
+        equal("a long transfer reads in hours and minutes", "1 h 1 min",
+                Formats.elapsed((3600 + 60) * 1000L));
+        equal("a short transfer reads in seconds", "5s", Formats.elapsed(5_000L));
+        equal("percentages are clamped to what a progress bar can show", "100%",
+                Formats.percent(140));
+        equal("negative percentages are clamped too", "0%", Formats.percent(-3));
+
+        // The diagnostics export is what a user pastes when asking for help.
+        LogBus bus = LogBus.get();
+        bus.clear();
+        bus.i("Server", "media server listening on 192.168.1.42:8200");
+        bus.e("Ssdp", "could not join the multicast group");
+        String export = bus.exportText();
+        check("the export names the app", export.contains("MediaBridge diagnostics export"));
+        check("the export counts events", export.contains("Events: 2"));
+        check("the export counts problems", export.contains("errors/warnings: 1"));
+        check("the export reads oldest first, like a log file",
+                export.indexOf("listening") < export.indexOf("multicast"));
+        check("every entry carries its tag and severity",
+                export.contains("Server") && export.contains("Ssdp")
+                        && export.contains("E") && export.contains("I"));
+
+        // A long session must not grow the buffer without bound.
+        bus.clear();
+        int over = 50;
+        for (int i = 0; i < 600 + over; i++) {
+            bus.d("Noise", "tick " + i);
+        }
+        equal("the log keeps a bounded history", 600, bus.snapshot(false, 10_000).size());
+        equal("and reports how many entries were dropped", (long) over, bus.droppedCount());
+        check("the newest entry is retained",
+                bus.snapshot(false, 1).get(0).message.endsWith("tick " + (600 + over - 1)));
+        check("the oldest entries are the ones dropped",
+                !bus.snapshot(false, 10_000).get(599).message.endsWith("tick 0"));
+        bus.clear();
+        equal("clearing resets the counters", 0L, bus.errorCount());
+        equal("including the drop counter", 0L, bus.droppedCount());
     }
 
     // ----------------------------------------------------------- XML helpers
