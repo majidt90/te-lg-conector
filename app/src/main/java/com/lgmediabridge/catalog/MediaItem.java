@@ -94,11 +94,16 @@ public final class MediaItem {
         return folderPath == null || folderPath.isEmpty() ? "/" : folderPath;
     }
 
+    /**
+     * Resolution in the notation UPnP/DLNA expects on the wire: {@code 1920x1080}
+     * with a lowercase ASCII "x" - not the typographic multiplication sign, which
+     * renderers fail to parse out of a {@code resolution} attribute.
+     */
     public String resolution() {
         if (width <= 0 || height <= 0) {
             return null;
         }
-        return width + "×" + height;
+        return width + "x" + height;
     }
 
     public String artistAlbum() {

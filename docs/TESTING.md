@@ -72,6 +72,19 @@ lifecycle, **U** = UI.
 | U5 | Airplane mode while browsing | Error states with retry, no crash |
 | U6 | All user-visible text | English only, no placeholder or developer-facing text |
 
+## What is verified without a device
+
+`python3 tools/verify.py` runs a JVM test suite over the protocol layer (the exact
+XML between phone and TV, the DLNA tokens, the range/time-seek maths and a live
+HTTP exchange). It exists because a regression in any of those shows up on the TV
+as "the phone never appears", "the list is empty" or "seeking is greyed out".
+It found four real wire-format defects during development: a percent-encoded DLNA
+device name shown instead of the TV model, single-part answers to multi-range
+requests, clock-style `npt=0:02:30-` seeks being rejected, and a `resolution`
+attribute written with a typographic `×` instead of the ASCII `x` renderers parse.
+
+Everything from section 3 onwards still requires the actual phone and TV.
+
 ## Log evidence to look for
 
 When something fails, Diagnostics should contain the corresponding entry:

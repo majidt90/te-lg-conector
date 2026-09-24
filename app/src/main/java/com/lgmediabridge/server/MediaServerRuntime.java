@@ -478,7 +478,10 @@ public final class MediaServerRuntime {
                         .header("Content-Range", HttpRange.contentRange(byteRange.start,
                                 byteRange.end, totalLength));
                 session.onRangeRequest(start);
-            } else if (request.header("range") != null && totalLength > 0) {
+            } else if (HttpRange.isUnsatisfiable(request.header("range"), totalLength)) {
+                // Only a valid request for bytes past the end earns a 416; a
+                // multi-range or malformed header is answered with the whole
+                // resource, which is what DLNA renderers expect.
                 throw new HttpServer.RangeNotSatisfiable(totalLength);
             }
 
@@ -532,7 +535,7 @@ public final class MediaServerRuntime {
                     .header("Content-Range", HttpRange.contentRange(byteRange.start, byteRange.end,
                             totalLength));
             session.onRangeRequest(byteRange.start);
-        } else if (request.header("range") != null) {
+        } else if (HttpRange.isUnsatisfiable(request.header("range"), totalLength)) {
             throw new HttpServer.RangeNotSatisfiable(totalLength);
         }
         finishHeaders(request, response, item, mime, profile, seekable, converted, totalLength,

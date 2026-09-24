@@ -9,11 +9,9 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *   * send {@code NOTIFY ssdp:alive} announcements periodically, plus a
  *     {@code ssdp:byebye} when sharing stops.
  *
+ * The message format itself lives in {@link SsdpMessages} (pure Java, verified
+ * on the JVM); this class only owns sockets, threads and locking.
+ *
  * M-SEARCH reception requires a multicast lock on Android
  * (CHANGE_WIFI_MULTICAST_STATE) which the foreground service holds while
  * sharing is on; if port 1900 cannot be bound (another DLNA server is running)
@@ -35,8 +36,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class SsdpServer {
 
     private static final String TAG = "Ssdp";
-    public static final String SSDP_ADDRESS = "239.255.255.250";
-    public static final int SSDP_PORT = 1900;
+    public static final String SSDP_ADDRESS = SsdpMessages.MULTICAST_ADDRESS;
+    public static final int SSDP_PORT = SsdpMessages.MULTICAST_PORT;
     private static final Charset ASCII = Charset.forName("ISO-8859-1");
     private static final long ANNOUNCE_INTERVAL_MS = 5 * 60 * 1000;
     private static final long INITIAL_ANNOUNCE_DELAY_MS = 600;
@@ -211,19 +212,7 @@ public final class SsdpServer {
     }
 
     private String response(String st, String usn) {
-        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
-        format.setTimeZone(java.util.TimeZone.getTimeZone("GMT"));
-        return "HTTP/1.1 200 OK\r\n"
-                + "CACHE-CONTROL: max-age=1800\r\n"
-                + "DATE: " + format.format(new Date()) + "\r\n"
-                + "EXT:\r\n"
-                + "LOCATION: " + location + "\r\n"
-                + "SERVER: " + serverHeader + "\r\n"
-                + "ST: " + st + "\r\n"
-                + "USN: " + usn + "\r\n"
-                + "BOOTID.UPNP.ORG: 1\r\n"
-                + "CONFIGID.UPNP.ORG: 1\r\n"
-                + "\r\n";
+        return SsdpMessages.searchResponse(st, usn, location);
     }
 
     private void announceLoop() {
@@ -238,16 +227,8 @@ public final class SsdpServer {
         if (location == null) {
             return;
         }
-        String usn = "uuid:" + uuid;
         List<String[]> targets = new ArrayList<>();
-        targets.add(new String[]{"upnp:rootdevice", usn + "::upnp:rootdevice"});
-        targets.add(new String[]{usn, usn});
-        targets.add(new String[]{DeviceDescription.DEVICE_TYPE,
-                usn + "::" + DeviceDescription.DEVICE_TYPE});
-        targets.add(new String[]{DeviceDescription.CONTENT_DIRECTORY_TYPE,
-                usn + "::" + DeviceDescription.CONTENT_DIRECTORY_TYPE});
-        targets.add(new String[]{DeviceDescription.CONNECTION_MANAGER_TYPE,
-                usn + "::" + DeviceDescription.CONNECTION_MANAGER_TYPE});
+        Collections.addAll(targets, SsdpMessages.announcementTargets(uuid));
 
         MulticastSocket current = socket;
         if (current == null) {
@@ -286,22 +267,7 @@ public final class SsdpServer {
     }
 
     private String notifyMessage(String nt, String usn, String nts) {
-        boolean alive = "ssdp:alive".equals(nts);
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("NOTIFY * HTTP/1.1\r\n");
-        sb.append("HOST: ").append(SSDP_ADDRESS).append(':').append(SSDP_PORT).append("\r\n");
-        if (alive) {
-            sb.append("CACHE-CONTROL: max-age=1800\r\n");
-        }
-        sb.append("LOCATION: ").append(location).append("\r\n");
-        sb.append("NT: ").append(nt).append("\r\n");
-        sb.append("NTS: ").append(nts).append("\r\n");
-        sb.append("SERVER: ").append(serverHeader).append("\r\n");
-        sb.append("USN: ").append(usn).append("\r\n");
-        sb.append("BOOTID.UPNP.ORG: 1\r\n");
-        sb.append("CONFIGID.UPNP.ORG: 1\r\n");
-        sb.append("\r\n");
-        return sb.toString();
+        return SsdpMessages.notify(nt, usn, nts, location);
     }
 
     private boolean matches(String st) {
@@ -314,13 +280,7 @@ public final class SsdpServer {
     }
 
     private static String header(String message, String name) {
-        for (String line : message.split("\r\n")) {
-            int colon = line.indexOf(':');
-            if (colon > 0 && line.substring(0, colon).trim().equalsIgnoreCase(name)) {
-                return line.substring(colon + 1).trim();
-            }
-        }
-        return null;
+        return SsdpMessages.header(message, name);
     }
 
     private void sleep(long millis) {

@@ -35,10 +35,60 @@ public final class HttpRange {
     /**
      * Parses {@code bytes=start-end} / {@code bytes=start-} / {@code bytes=-suffix}.
      *
-     * @return the effective range, or null when the header is absent/invalid or
-     *         the range cannot be satisfied for {@code totalLength}.
+     * Multi-range requests ({@code bytes=0-99,200-299}) return null on purpose:
+     * answering any single part of a multi-range request with a plain 206 would
+     * lie about what was sent. The caller then serves the whole resource, which
+     * is a legal answer and the one every renderer handles.
+     *
+     * @return the effective range, or null when the header is absent, is not a
+     *         single byte range, or cannot be satisfied for {@code totalLength}.
      */
     public static ByteRange parseBytes(String header, long totalLength) {
+        long[] range = parseSingle(header, totalLength);
+        return range == null ? null : new ByteRange(range[0], range[1]);
+    }
+
+    /** True when a Range header of any shape was sent. */
+    public static boolean hasRangeHeader(String header) {
+        return header != null && !header.trim().isEmpty();
+    }
+
+    /**
+     * True only when the client asked for a syntactically valid single range
+     * that lies beyond the end of the resource - the one case that deserves
+     * HTTP 416. Malformed or multi-range requests are not "unsatisfiable"; they
+     * are answered with the complete resource.
+     */
+    public static boolean isUnsatisfiable(String header, long totalLength) {
+        if (!hasRangeHeader(header) || totalLength <= 0) {
+            return false;
+        }
+        String value = header.trim().toLowerCase(Locale.US);
+        if (!value.startsWith("bytes=")) {
+            return false;
+        }
+        value = value.substring("bytes=".length()).trim();
+        if (value.isEmpty() || value.indexOf(',') >= 0) {
+            return false;
+        }
+        int dash = value.indexOf('-');
+        if (dash < 0) {
+            return false;
+        }
+        String startText = value.substring(0, dash).trim();
+        if (startText.isEmpty()) {
+            // Suffix requests are always satisfiable with at least one byte.
+            return false;
+        }
+        try {
+            return Long.parseLong(startText) >= totalLength;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /** Parses one range into a {@code [start, end]} pair, or returns null. */
+    private static long[] parseSingle(String header, long totalLength) {
         if (header == null || totalLength <= 0) {
             return null;
         }
@@ -46,11 +96,8 @@ public final class HttpRange {
         if (value.startsWith("bytes=")) {
             value = value.substring("bytes=".length());
         }
-        int comma = value.indexOf(',');
-        if (comma >= 0) {
-            // Multi-range requests are legal but no DLNA renderer needs them;
-            // serve the first range, which is a valid partial response.
-            value = value.substring(0, comma);
+        if (value.indexOf(',') >= 0) {
+            return null;
         }
         int dash = value.indexOf('-');
         if (dash < 0) {
@@ -82,7 +129,7 @@ public final class HttpRange {
             if (end < start) {
                 return null;
             }
-            return new ByteRange(start, end);
+            return new long[]{start, end};
         } catch (NumberFormatException e) {
             return null;
         }
@@ -103,7 +150,12 @@ public final class HttpRange {
     }
 
     /**
-     * Parses {@code TimeSeekRange.dlna.org: npt=SS.mmm-EE.mmm} (or {@code npt=SS}).
+     * Parses {@code TimeSeekRange.dlna.org: npt=<start>-<end>}.
+     *
+     * Both notations the specification allows are accepted: seconds
+     * ({@code npt=123.456-}) and the clock form ({@code npt=0:02:03.500-}), and
+     * a bare {@code npt=<start>} means "from there to the end". An end of
+     * {@link #UNSPECIFIED_END} means the client did not bound the range.
      */
     public static TimeRange parseTimeSeek(String header) {
         if (header == null) {
@@ -118,33 +170,60 @@ public final class HttpRange {
         int dash = npt.indexOf('-');
         try {
             if (dash < 0) {
-                return new TimeRange(parseSeconds(npt), -1);
+                return new TimeRange(parseSeconds(npt), UNSPECIFIED_END);
             }
             String startText = npt.substring(0, dash).trim();
             String endText = npt.substring(dash + 1).trim();
             long start = startText.isEmpty() ? 0 : parseSeconds(startText);
-            long end = endText.isEmpty() ? -1 : parseSeconds(endText);
+            long end = endText.isEmpty() ? UNSPECIFIED_END : parseSeconds(endText);
             return new TimeRange(start, end);
         } catch (NumberFormatException e) {
             return null;
         }
     }
 
-    /** npt times are seconds with optional milliseconds: {@code 123.456}. */
+    /** No end bound was given by the client. */
+    public static final long UNSPECIFIED_END = -1L;
+
+    /**
+     * npt times, in either notation:
+     * {@code 123.456} / {@code 123} (seconds) or {@code 0:02:03.500} (clock).
+     */
     private static long parseSeconds(String text) {
-        int dot = text.indexOf('.');
-        if (dot < 0) {
-            return (long) (Double.parseDouble(text) * 1000.0);
+        String value = text.trim();
+        String[] parts = value.split(":");
+        long secondsValue;
+        String fraction;
+        if (parts.length == 1) {
+            int dot = value.indexOf('.');
+            secondsValue = Long.parseLong(dot < 0 ? value : value.substring(0, dot));
+            fraction = dot < 0 ? "" : value.substring(dot + 1);
+        } else {
+            // H:MM:SS(.mmm) or MM:SS(.mmm)
+            long hours = 0;
+            long minutes;
+            int last = parts.length - 1;
+            int dot = parts[last].indexOf('.');
+            long seconds = Long.parseLong(dot < 0 ? parts[last] : parts[last].substring(0, dot));
+            fraction = dot < 0 ? "" : parts[last].substring(dot + 1);
+            if (parts.length == 3) {
+                hours = Long.parseLong(parts[0].trim());
+                minutes = Long.parseLong(parts[1].trim());
+            } else {
+                minutes = Long.parseLong(parts[0].trim());
+            }
+            if (minutes >= 60 || seconds >= 60) {
+                throw new NumberFormatException("invalid npt clock value: " + value);
+            }
+            secondsValue = hours * 3600 + minutes * 60 + seconds;
         }
-        long seconds = Long.parseLong(text.substring(0, dot));
-        String fraction = text.substring(dot + 1);
         if (fraction.length() > 3) {
             fraction = fraction.substring(0, 3);
         }
         while (fraction.length() < 3) {
             fraction = fraction + "0";
         }
-        return seconds * 1000L + Long.parseLong(fraction);
+        return secondsValue * 1000L + Long.parseLong(fraction);
     }
 
     /** Builds the DLNA response header for a time seek answer. */

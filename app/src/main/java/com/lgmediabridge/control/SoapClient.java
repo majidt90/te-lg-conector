@@ -101,6 +101,40 @@ public final class SoapClient {
         }
     }
 
+    /** UPnP time format for a Seek target: {@code H:MM:SS}. */
+    public static String time(long millis) {
+        long totalSeconds = Math.max(0, millis) / 1000;
+        return String.format(java.util.Locale.US, "%d:%02d:%02d", totalSeconds / 3600,
+                (totalSeconds % 3600) / 60, totalSeconds % 60);
+    }
+
+    /**
+     * Parses the time strings a renderer returns: {@code H:MM:SS(.fff)} or
+     * {@code M:SS(.fff)}, plus the {@code NOT_IMPLEMENTED} sentinel that webOS
+     * renderers use when a value is unknown - which must read as zero, not as an
+     * error.
+     */
+    public static long parseTime(String value) {
+        if (value == null || value.isEmpty() || value.startsWith("NOT_IMPLEMENTED")) {
+            return 0;
+        }
+        try {
+            String[] parts = value.split(":");
+            if (parts.length == 3) {
+                return (long) ((Double.parseDouble(parts[0]) * 3600
+                        + Double.parseDouble(parts[1]) * 60
+                        + Double.parseDouble(parts[2])) * 1000);
+            }
+            if (parts.length == 2) {
+                return (long) ((Double.parseDouble(parts[0]) * 60
+                        + Double.parseDouble(parts[1])) * 1000);
+            }
+            return (long) (Double.parseDouble(value) * 1000);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     public static Map<String, String> args(String... keyValues) {
         Map<String, String> map = new LinkedHashMap<>();
         for (int i = 0; i + 1 < keyValues.length; i += 2) {

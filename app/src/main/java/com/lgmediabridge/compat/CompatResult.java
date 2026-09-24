@@ -29,7 +29,7 @@ public final class CompatResult {
     /** True when the file's tracks were actually read on this device. */
     public final boolean inspected;
 
-    CompatResult(Verdict verdict, List<String> reasons, Map<String, String> details, boolean inspected) {
+    public CompatResult(Verdict verdict, List<String> reasons, Map<String, String> details, boolean inspected) {
         this.verdict = verdict;
         this.reasons = Collections.unmodifiableList(reasons);
         this.details = Collections.unmodifiableMap(new LinkedHashMap<>(details));

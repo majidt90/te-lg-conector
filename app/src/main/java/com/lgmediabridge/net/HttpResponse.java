@@ -104,7 +104,7 @@ public final class HttpResponse {
     }
 
     /** Writes the response. {@code headOnly} suppresses the body for HEAD requests. */
-    void writeTo(OutputStream out, boolean headOnly, boolean keepAlive) throws IOException {
+    public void writeTo(OutputStream out, boolean headOnly, boolean keepAlive) throws IOException {
         StringBuilder head = new StringBuilder(256);
         head.append("HTTP/1.1 ").append(status).append(' ').append(statusText).append("\r\n");
         for (Map.Entry<String, String> entry : headers.entrySet()) {

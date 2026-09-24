@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.wifi.WifiManager;
 
 import com.lgmediabridge.core.Formats;
+import com.lgmediabridge.dlna.SsdpMessages;
 import com.lgmediabridge.core.LogBus;
 
 import java.io.IOException;
@@ -45,8 +46,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class TvDiscovery {
 
     private static final String TAG = "TvDiscovery";
-    private static final String SSDP_ADDRESS = "239.255.255.250";
-    private static final int SSDP_PORT = 1900;
+    private static final String SSDP_ADDRESS = SsdpMessages.MULTICAST_ADDRESS;
+    private static final int SSDP_PORT = SsdpMessages.MULTICAST_PORT;
     private static final Charset ASCII = Charset.forName("ISO-8859-1");
     private static final long DEVICE_TTL_MS = 20_000;
 
@@ -204,18 +205,12 @@ public final class TvDiscovery {
 
     private void sendSearches() {
         List<String> targets = new ArrayList<>();
-        targets.add("ssdp:all");
+        targets.add(SsdpMessages.ALL);
         targets.add(ST_MEDIA_RENDERER);
         targets.add(ST_LG_SECOND_SCREEN);
         targets.add(ST_MEDIA_SERVER);
         for (String target : targets) {
-            String message = "M-SEARCH * HTTP/1.1\r\n"
-                    + "HOST: " + SSDP_ADDRESS + ":" + SSDP_PORT + "\r\n"
-                    + "MAN: \"ssdp:discover\"\r\n"
-                    + "MX: 2\r\n"
-                    + "ST: " + target + "\r\n"
-                    + "USER-AGENT: Android/MediaBridge UPnP/1.0\r\n\r\n";
-            byte[] payload = message.getBytes(ASCII);
+            byte[] payload = SsdpMessages.searchRequest(target, 2).getBytes(ASCII);
             sendToMulticast(payload);
             sendToRouter(payload);
         }
@@ -258,8 +253,14 @@ public final class TvDiscovery {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 multicastSocket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength(), ASCII);
-                if (message.startsWith("HTTP/1.1 200") || message.startsWith("NOTIFY")) {
+                if (message.startsWith("HTTP/1.1 200")) {
                     handleResponse(message, packet.getAddress().getHostAddress());
+                } else if (message.startsWith("NOTIFY")) {
+                    if (SsdpMessages.isByeBye(message)) {
+                        handleByeBye(message);
+                    } else {
+                        handleResponse(message, packet.getAddress().getHostAddress());
+                    }
                 }
             } catch (java.net.SocketTimeoutException e) {
                 // normal: the socket times out so the loop can notice stop()
@@ -312,6 +313,31 @@ public final class TvDiscovery {
             fetchDescription(candidate);
         } else {
             notifyDevice(candidate, false);
+        }
+    }
+
+    /**
+     * A device announcing {@code ssdp:byebye} is gone (TV switched off, or its
+     * network changed). Removing it immediately is what keeps the device list
+     * honest instead of showing a TV that has been off for ten minutes.
+     */
+    private void handleByeBye(String message) {
+        String usn = header(message, "USN");
+        if (usn == null) {
+            return;
+        }
+        String id = usn.startsWith("uuid:") ? usn.substring(5) : usn;
+        int doubleColon = id.indexOf("::");
+        if (doubleColon > 0) {
+            id = id.substring(0, doubleColon);
+        }
+        TvDevice removed;
+        synchronized (this) {
+            removed = found.remove(id);
+        }
+        if (removed != null) {
+            LogBus.get().i(TAG, removed.displayName() + " left the network");
+            notifyStatus(removed.displayName() + " disconnected");
         }
     }
 
@@ -403,13 +429,7 @@ public final class TvDiscovery {
     }
 
     private static String header(String message, String name) {
-        for (String line : message.split("\r\n")) {
-            int colon = line.indexOf(':');
-            if (colon > 0 && line.substring(0, colon).trim().equalsIgnoreCase(name)) {
-                return line.substring(colon + 1).trim();
-            }
-        }
-        return null;
+        return SsdpMessages.header(message, name);
     }
 
     /**

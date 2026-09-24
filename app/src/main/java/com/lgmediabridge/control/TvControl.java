@@ -245,32 +245,13 @@ public final class TvControl {
         return device == null ? "TV" : device.displayName();
     }
 
+    /** Time formatting/parsing lives with the protocol helpers. */
     public static String time(long millis) {
-        long totalSeconds = Math.max(0, millis) / 1000;
-        return String.format(java.util.Locale.US, "%d:%02d:%02d", totalSeconds / 3600,
-                (totalSeconds % 3600) / 60, totalSeconds % 60);
+        return SoapClient.time(millis);
     }
 
-    /** Parses UPnP's H:MM:SS(.fff) - or NOT_IMPLEMENTED. */
     public static long parseTime(String value) {
-        if (value == null || value.isEmpty() || value.startsWith("NOT_IMPLEMENTED")) {
-            return 0;
-        }
-        try {
-            String[] parts = value.split(":");
-            if (parts.length == 3) {
-                double hours = Double.parseDouble(parts[0]);
-                double minutes = Double.parseDouble(parts[1]);
-                double seconds = Double.parseDouble(parts[2]);
-                return (long) ((hours * 3600 + minutes * 60 + seconds) * 1000);
-            }
-            if (parts.length == 2) {
-                return (long) ((Double.parseDouble(parts[0]) * 60
-                        + Double.parseDouble(parts[1])) * 1000);
-            }
-            return (long) (Double.parseDouble(value) * 1000);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
+        return SoapClient.parseTime(value);
     }
+
 }

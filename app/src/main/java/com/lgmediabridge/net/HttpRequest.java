@@ -105,20 +105,31 @@ public final class HttpRequest {
     }
 
     /** Identifies the DLNA/UPnP client in diagnostics: LG TVs are recognisable. */
+    /**
+     * A human-readable name for whichever device is talking to the server.
+     *
+     * Order matters: the LG user agent carries the exact model
+     * ({@code [TV][LG]55NANO86VPA/6.5.3}), which is what the sessions list should
+     * show; the DLNA device-name header is only a fallback (and is percent
+     * encoded on the wire). When neither is present the address is used, because
+     * "192.168.1.50" is more useful to a user than "unknown".
+     */
     public String clientLabel() {
+        int model = userAgent.indexOf("[TV]");
+        if (model >= 0 && userAgent.length() > model) {
+            String tail = userAgent.substring(model);
+            int space = tail.indexOf(' ');
+            String label = space > 0 ? tail.substring(0, space) : tail;
+            // Drop the firmware suffix ("[TV][LG]55NANO86VPA/6.5.3" -> model only).
+            int slash = label.indexOf('/');
+            return slash > 0 ? label.substring(0, slash) : label;
+        }
         String dlnaDevice = header("dlnadevicename.lge.com");
-        if (dlnaDevice != null) {
-            return dlnaDevice;
+        if (dlnaDevice != null && !dlnaDevice.isEmpty()) {
+            return urlDecode(dlnaDevice);
         }
         if (userAgent.isEmpty()) {
             return remoteAddress;
-        }
-        // A typical LG UA looks like:
-        //   Linux/3.0.13 UPnP/1.0 LGE_DLNA_SDK/1.6.0 [TV][LG]55NANO86VPA/04.10.25 DLNADOC/1.50
-        int model = userAgent.indexOf("[TV]");
-        if (model >= 0) {
-            int end = userAgent.indexOf(' ', model);
-            return end > model ? userAgent.substring(model, end) : userAgent.substring(model);
         }
         return userAgent.length() > 64 ? userAgent.substring(0, 64) + "…" : userAgent;
     }
@@ -143,7 +154,7 @@ public final class HttpRequest {
      * Reads one request from the socket. Returns null on a clean end of stream
      * (client closed the connection between keep-alive requests).
      */
-    static HttpRequest read(Socket socket) throws IOException {
+    public static HttpRequest read(Socket socket) throws IOException {
         InputStream in = socket.getInputStream();
         String requestLine = readLine(in);
         if (requestLine == null || requestLine.isEmpty()) {

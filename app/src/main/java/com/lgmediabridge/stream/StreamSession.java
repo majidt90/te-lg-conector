@@ -20,6 +20,7 @@ public final class StreamSession {
     public final boolean converted;
     public final long totalBytes;
     public final long startedAt = System.currentTimeMillis();
+    private int status;
 
     private final AtomicLong bytesSent = new AtomicLong();
     private final AtomicLong lastActivity = new AtomicLong(startedAt);
@@ -54,6 +55,7 @@ public final class StreamSession {
 
     public void markFinished(int status) {
         finished = true;
+        this.status = status;
         state = status >= 400 ? "failed" : "finished";
         lastActivity.set(System.currentTimeMillis());
     }
@@ -80,6 +82,11 @@ public final class StreamSession {
 
     public long rangeRequests() {
         return rangeRequests.get();
+    }
+
+    /** HTTP status the transfer ended with (0 while it is still running). */
+    public int finishedStatus() {
+        return status;
     }
 
     public boolean isFinished() {

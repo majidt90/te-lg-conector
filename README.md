@@ -96,6 +96,17 @@ ANDROID_TC=$HOME/.android-toolchain python3 tools/build.py --variant debug
 Useful flags: `--variant release`, `--out dist`, `--clean`, and for release builds
 `--keystore/--ks-pass/--key-alias/--key-pass`.
 
+### Verifying the part that talks to the TV
+
+The wire format is covered by a device-free test suite: it compiles the same
+protocol classes the APK uses (DIDL-Lite, SCPDs, SOAP, SSDP, range maths, the HTTP
+framing) on a plain JVM and runs ~220 assertions, including a real HTTP exchange
+over a loopback socket.
+
+```bash
+python3 tools/verify.py            # add --verbose to see every check
+```
+
 `tools/bootstrap-toolchain.sh` reproduces the toolchain directory (`android.jar`, `aapt2`, `d8`,
 `apksigner`, `ecj`, a debug keystore) from packages that are reachable without Google's Maven
 mirrors; provenance is noted in the script.
