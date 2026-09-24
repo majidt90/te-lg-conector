@@ -267,7 +267,8 @@ public final class HomeView {
             ((TextView) row.findViewById(R.id.stream_rate)).setText(
                     Formats.rate(session.bytesPerSecond()));
             ((TextView) row.findViewById(R.id.stream_meta)).setText(
-                    session.clientLabel + " · " + Formats.bytes(session.totalBytes()));
+                    session.clientLabel + " · "
+                            + Formats.bytes(session.displayTotalBytes()));
             ProgressBar progress = row.findViewById(R.id.stream_progress);
             progress.setProgress(Math.max(0, Math.min(100, session.progressPercent())));
             ((TextView) row.findViewById(R.id.stream_state)).setText(session.state());

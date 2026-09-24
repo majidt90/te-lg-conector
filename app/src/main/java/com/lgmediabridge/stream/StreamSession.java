@@ -18,7 +18,7 @@ public final class StreamSession {
     public final String title;
     public final String mimeType;
     public final boolean converted;
-    public final long totalBytes;
+    private volatile long totalBytes;
     public final long startedAt = System.currentTimeMillis();
     private int status;
 
@@ -74,6 +74,30 @@ public final class StreamSession {
 
     public long totalBytes() {
         return totalBytes;
+    }
+
+    /**
+     * The size to show a user: the expected total when it is known, and the
+     * bytes actually sent when it is not (a conversion that has not started yet
+     * has no length to report, and "0 B" would read as a failure).
+     */
+    public long displayTotalBytes() {
+        return totalBytes > 0 ? totalBytes : bytesSent.get();
+    }
+
+    /**
+     * Corrects the expected size once the real source is known.
+     *
+     * The catalogue can only report what MediaStore told it, and a converted
+     * photo or audio track is a *different* file - serving it under the original
+     * size made the progress bar stop short of 100% and showed the user a byte
+     * count that was never transferred. Non-positive values are ignored rather
+     * than clearing a known size.
+     */
+    public void setTotalBytes(long total) {
+        if (total > 0) {
+            this.totalBytes = total;
+        }
     }
 
     public long contentStart() {

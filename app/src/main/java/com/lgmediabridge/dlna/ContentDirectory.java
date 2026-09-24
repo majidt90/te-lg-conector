@@ -454,7 +454,7 @@ public final class ContentDirectory {
         String url = mediaUrl(baseUrl, item, mime);
         String thumbnailUrl = item.kind == MediaItem.Kind.PHOTO ? null
                 : com.lgmediabridge.server.MediaPath.thumbnailUrl(baseUrl, item);
-        long size = item.sizeBytes;
+        long size = Dlna.advertisedSize(item, result);
         long duration = item.kind == MediaItem.Kind.PHOTO ? 0 : item.durationMs;
         return DidlLite.item(entry.id, parentId, item, url, thumbnailUrl, mime, protocolInfo,
                 profile, size, duration);

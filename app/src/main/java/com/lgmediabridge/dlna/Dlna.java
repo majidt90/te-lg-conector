@@ -135,6 +135,22 @@ public final class Dlna {
         return String.format(Locale.US, "%d:%02d:%02d.%03d", hours, minutes, seconds, ms);
     }
 
+    /**
+     * The size to publish in DIDL-Lite, or 0 when it is not what will be served.
+     *
+     * A converted resource is a different file: the JPEG of a HEIC photo and the
+     * AAC of an Opus track have their own sizes, known only once the conversion
+     * has run. Publishing the original size would be a lie the player may act on
+     * (planning a buffer, drawing progress), so the attribute is left out and the
+     * response's own Content-Length is the single source of truth.
+     */
+    public static long advertisedSize(MediaItem item, CompatResult result) {
+        if (item == null || result == null || item.sizeBytes <= 0) {
+            return 0;
+        }
+        return result.verdict == CompatResult.Verdict.DIRECT ? item.sizeBytes : 0;
+    }
+
     /** True when the app can offer byte-range seeking for this resource. */
     public static boolean seekable(CompatResult result) {
         return result.verdict == CompatResult.Verdict.DIRECT

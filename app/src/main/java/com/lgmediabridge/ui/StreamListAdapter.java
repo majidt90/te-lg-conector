@@ -85,7 +85,7 @@ public final class StreamListAdapter extends BaseAdapter {
         state.setText(session.state() + " · " + context.getString(R.string.sessions_progress,
                 percent) + " · " + Formats.elapsed(session.elapsedMillis()));
         bytes.setText(Formats.bytes(session.bytesSent()) + " / "
-                + Formats.bytes(session.totalBytes()));
+                + Formats.bytes(session.displayTotalBytes()));
         Ui.dotSeverity(dot, finished ? 3 : 0);
 
         historyRow.setVisibility(finished ? View.VISIBLE : View.GONE);

@@ -1088,6 +1088,30 @@ public final class MediaBridgeTests {
                 !session.isStale(0));
         check("a transfer goes stale when idle", session.isStale(-1));
 
+        // A converted source reports its own length, so progress still reaches 100%.
+        StreamSession converted = new StreamSession("s3", "192.168.1.51", "TV", "a9", "Song",
+                "audio/mp4", 0, true);
+        converted.setTotalBytes(12_000_000L);
+        converted.onBytes(12_000_000L, 65_536);
+        equal("a converted transfer reports the converted file's size",
+                12_000_000L, converted.totalBytes());
+        equal("and its progress reaches 100%", 100, converted.progressPercent());
+        converted.setTotalBytes(0);
+        equal("a bogus zero length does not clear a known size", 12_000_000L,
+                converted.totalBytes());
+        converted.setTotalBytes(-1);
+        equal("a negative length is ignored too", 12_000_000L, converted.totalBytes());
+        StreamSession unknown = new StreamSession("s4", "192.168.1.52", "TV", "v9", "Clip",
+                "video/mp4", 0, false);
+        equal("an unknown size reports no progress rather than a wrong one", 0,
+                unknown.progressPercent());
+        unknown.onBytes(4_000_000L, 65_536);
+        equal("with no known total, the screen shows what was sent", 4_000_000L,
+                unknown.displayTotalBytes());
+        unknown.setTotalBytes(10_000_000L);
+        equal("once the total is known, the screen shows the total", 10_000_000L,
+                unknown.displayTotalBytes());
+
         session.onRangeRequest(5_000_000L);
         equal("range requests counted (seek evidence)", 1L, session.rangeRequests());
         equal("where the byte range started is remembered", 5_000_000L,

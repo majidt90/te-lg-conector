@@ -398,7 +398,7 @@ public final class MediaServerRuntime {
         boolean seekable = Dlna.seekable(result);
         String profile = Dlna.profileFor(mime, item.kind, false, converted);
         StreamSession session = streams.create(request.remoteAddress, request.clientLabel(),
-                item.objectId(), item.title, mime, item.sizeBytes, converted);
+                item.objectId(), item.title, mime, Dlna.advertisedSize(item, result), converted);
         session.setState(converted ? "converting" : "streaming");
 
         if (result.verdict == CompatResult.Verdict.PHOTO_CONVERT && !settings.photoConvert()) {
@@ -459,6 +459,7 @@ public final class MediaServerRuntime {
             if (descriptorLength > 0) {
                 totalLength = descriptorLength;
             }
+            session.setTotalBytes(totalLength);
             HttpRange.ByteRange byteRange = HttpRange.parseBytes(request.header("range"), totalLength);
             HttpRange.TimeRange timeRange = HttpRange.parseTimeSeek(
                     request.header(Dlna.TIME_SEEK_RANGE));
@@ -529,6 +530,8 @@ public final class MediaServerRuntime {
                            File file, String mime, MediaItem item, String profile, boolean converted,
                            boolean seekable) throws IOException {
         long totalLength = file.length();
+        // The converted file is what is actually sent, so it defines the size.
+        session.setTotalBytes(totalLength);
         HttpRange.ByteRange byteRange = HttpRange.parseBytes(request.header("range"), totalLength);
         if (byteRange != null) {
             response.status(206, "Partial Content")

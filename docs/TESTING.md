@@ -78,7 +78,11 @@ lifecycle, **U** = UI.
 (the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
 the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
-It has found six real defects so far, two of them severity-1:
+It has found six real defects so far, two of them severity-1, plus a size-honesty
+problem: a converted photo or audio track was listed and counted under the
+*original* file's size, so the progress bar could never reach 100% and the session
+list showed bytes that were never transferred (a converted resource now reports
+its own length, and an unknown one shows what has actually been sent):
 
 * **every video would have been hidden from the TV.** Android stores the *container*
   MIME (`video/mp4`) for ordinary phone videos, and the compatibility check only
