@@ -2,8 +2,10 @@ package com.lgmediabridge.stream;
 
 import com.lgmediabridge.core.LogBus;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +27,20 @@ public final class StreamRegistry {
 
     private static final long STALE_IDLE_MS = 45_000;
 
+    /** How many completed transfers the sessions screen keeps as history. */
+    public static final int HISTORY_LIMIT = 20;
+
     private final Map<String, StreamSession> sessions = new ConcurrentHashMap<>();
+    /**
+     * Completed transfers, newest first.
+     *
+     * Kept apart from the active map on purpose: "is anything playing right now"
+     * (which decides the wake lock and the notification) must answer false the
+     * moment a transfer ends, while the user still wants to see what just
+     * happened. A single map cannot do both - with the finished session left in,
+     * the service would believe playback continued.
+     */
+    private final Deque<StreamSession> finished = new ArrayDeque<>();
     private final CopyOnWriteArrayList<Listener> listeners = new CopyOnWriteArrayList<>();
     private final AtomicInteger sequence = new AtomicInteger();
 
@@ -46,9 +61,20 @@ public final class StreamRegistry {
         }
         session.markFinished(status);
         sessions.remove(session.id);
+        remember(session);
         LogBus.get().i("Stream", "end " + session.id + " " + session.title
                 + " · " + session.bytesSent() + " bytes in " + session.elapsedMillis() + " ms");
         notifyListeners();
+    }
+
+    /** Records a completed session in the history, dropping the oldest. */
+    private void remember(StreamSession session) {
+        synchronized (finished) {
+            finished.addFirst(session);
+            while (finished.size() > HISTORY_LIMIT) {
+                finished.removeLast();
+            }
+        }
     }
 
     public void touch(StreamSession session) {
@@ -90,7 +116,9 @@ public final class StreamRegistry {
     public void stopAll() {
         for (StreamSession session : new ArrayList<>(sessions.values())) {
             sessions.remove(session.id);
+            session.markFinished(0);
             session.setState("stopped");
+            remember(session);
         }
         LogBus.get().i("Stream", "all streams stopped by user");
         notifyListeners();
@@ -112,28 +140,18 @@ public final class StreamRegistry {
         }
     }
 
-    /** Recently finished transfers, newest first - shown as history in the UI. */
+    /** Completed transfers, newest first - the history shown in the UI. */
     public List<StreamSession> recentFinished() {
-        List<StreamSession> list = new ArrayList<>();
-        for (StreamSession session : sessions.values()) {
-            if (session.isFinished()) {
-                list.add(session);
-            }
+        synchronized (finished) {
+            return new ArrayList<>(finished);
         }
-        Collections.sort(list, (a, b) -> Long.compare(b.lastActivity(), a.lastActivity()));
-        if (list.size() > 20) {
-            return new ArrayList<>(list.subList(0, 20));
-        }
-        return list;
     }
 
     public void clearFinished() {
-        boolean changed = false;
-        for (StreamSession session : new ArrayList<>(sessions.values())) {
-            if (session.isFinished()) {
-                sessions.remove(session.id);
-                changed = true;
-            }
+        boolean changed;
+        synchronized (finished) {
+            changed = !finished.isEmpty();
+            finished.clear();
         }
         if (changed) {
             notifyListeners();

@@ -64,6 +64,7 @@ SOURCES = [
     "control/SoapClient.java",
     "server/MediaPath.java",
     "stream/StreamSession.java",
+    "stream/StreamRegistry.java",
 ]
 
 STUBS = [

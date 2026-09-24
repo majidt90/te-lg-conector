@@ -78,7 +78,7 @@ lifecycle, **U** = UI.
 (the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
 the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
-It has found six real defects so far, two of them severity-1, plus a size-honesty
+It has found seven real defects so far, two of them severity-1, plus a size-honesty
 problem: a converted photo or audio track was listed and counted under the
 *original* file's size, so the progress bar could never reach 100% and the session
 list showed bytes that were never transferred (a converted resource now reports
@@ -88,6 +88,13 @@ its own length, and an unknown one shows what has actually been sent):
   MIME (`video/mp4`) for ordinary phone videos, and the compatibility check only
   knew codec MIME types (`video/avc`), so it judged them unsupported - with
   "hide unsupported" on, the video library would have been empty.
+* **the transfer history could never show anything.** A finished transfer was
+  marked finished and then removed from the registry, while the history method
+  looked for finished transfers *inside* that same registry - so the sessions
+  screen's history was permanently empty. Completed transfers now live in their
+  own bounded list (newest first, cap 20), which also keeps "is anything playing
+  right now" honest: the wake lock and the notification drop the moment playback
+  ends.
 * **Ogg Vorbis was refused** although webOS documents it as playable, because the
   documented list had `audio/vorbis` but MediaStore reports `audio/ogg`.
 * the client label showed the percent-encoded DLNA device name (`%5bLG%5dwebOS1-TV`)

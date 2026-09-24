@@ -16,6 +16,7 @@ import com.lgmediabridge.net.HttpRange;
 import com.lgmediabridge.net.HttpRequest;
 import com.lgmediabridge.net.HttpResponse;
 import com.lgmediabridge.server.MediaPath;
+import com.lgmediabridge.stream.StreamRegistry;
 import com.lgmediabridge.stream.StreamSession;
 
 import java.io.ByteArrayInputStream;
@@ -94,6 +95,9 @@ public final class MediaBridgeTests {
 
         area("Streaming metrics");
         streamSessions();
+
+        area("Stream registry (what the phone reports is playing)");
+        streamRegistry();
 
         area("Log export and JSON persistence");
         logAndJson();
@@ -1085,8 +1089,8 @@ public final class MediaBridgeTests {
         equal("bytes sent tracked", 25_000_000L, session.bytesSent());
         equal("progress is honest", 25, session.progressPercent());
         check("a transfer is not stale while it is progressing",
-                !session.isStale(0));
-        check("a transfer goes stale when idle", session.isStale(-1));
+                !session.isStale(60_000));
+        check("a transfer goes stale when it has been idle", session.isStale(-1));
 
         // A converted source reports its own length, so progress still reaches 100%.
         StreamSession converted = new StreamSession("s3", "192.168.1.51", "TV", "a9", "Song",
@@ -1134,6 +1138,76 @@ public final class MediaBridgeTests {
                 quick.progressPercent() == 100
                         || quick.bytesSent() == quick.totalBytes());
         equal("completed transfer keeps its status", 200, quick.finishedStatus());
+    }
+
+    // ------------------------------------------------------- stream registry
+
+    private static void streamRegistry() {
+        StreamRegistry registry = new StreamRegistry();
+        final int[] notifications = {0};
+        registry.addListener(sessions -> notifications[0]++);
+
+        StreamSession first = registry.create("192.168.1.50", "[TV][LG]55NANO86VPA", "v42",
+                "Holiday Clip.mp4", "video/mp4", 734_003_200L, false);
+        StreamSession second = registry.create("192.168.1.51", "[TV][LG]55NANO86VPA", "a3",
+                "Song.flac", "audio/flac", 30_000_000L, false);
+        equal("both transfers are tracked", 2, registry.activeCount());
+        check("the phone reports something is playing", registry.hasActiveStreams());
+        equal("one session can be looked up by id", first, registry.byId(first.id));
+        equal("the session list is newest first", second.id, registry.activeSorted().get(0).id);
+        equal("transfers that have not moved bytes yet contribute no throughput", 0L,
+                registry.totalBytesPerSecond());
+        first.onBytes(367_001_600L, 65_536);
+        second.onBytes(30_000_000L, 65_536);
+
+        registry.finish(first, 200);
+        equal("a finished transfer leaves the active list", 1, registry.activeCount());
+        check("the phone still reports the other transfer as playing",
+                registry.hasActiveStreams());
+        equal("and it is not counted twice in the rate", registry.totalBytesPerSecond(),
+                second.bytesPerSecond());
+        equal("history records what just finished", 1, registry.recentFinished().size());
+        equal("with its final status", 200, registry.recentFinished().get(0).finishedStatus());
+        equal("and its byte count", 367_001_600L,
+                registry.recentFinished().get(0).bytesSent());
+
+        registry.finish(second, 500);
+        check("nothing is playing once every transfer ends", !registry.hasActiveStreams());
+        equal("a failed transfer is kept in history too", 2, registry.recentFinished().size());
+        equal("the newest finished transfer comes first", 500,
+                registry.recentFinished().get(0).finishedStatus());
+        equal("no active transfer means no throughput", 0L, registry.totalBytesPerSecond());
+
+        // History is bounded, and clearing it is what the UI button does.
+        for (int i = 0; i < StreamRegistry.HISTORY_LIMIT + 5; i++) {
+            StreamSession extra = registry.create("10.0.0.2", "TV", "v" + i, "clip " + i,
+                    "video/mp4", 1000, false);
+            registry.finish(extra, 200);
+        }
+        equal("history is capped", StreamRegistry.HISTORY_LIMIT,
+                registry.recentFinished().size());
+        registry.clearFinished();
+        equal("clearing history empties it", 0, registry.recentFinished().size());
+        check("the UI was told about every change", notifications[0] > 5);
+
+        // Stopping everything must end every session and say so.
+        registry.create("10.0.0.3", "TV", "p1", "photo", "image/jpeg", 4000, false);
+        registry.create("10.0.0.3", "TV", "v2", "clip", "video/mp4", 9000, false);
+        registry.stopAll();
+        equal("stop all clears the active list", 0, registry.activeCount());
+        check("and the stopped transfers are visible in history",
+                registry.recentFinished().size() == 2
+                        && "stopped".equals(registry.recentFinished().get(0).state()));
+
+        // A listener that throws must not break the others.
+        StreamRegistry resilient = new StreamRegistry();
+        final int[] reached = {0};
+        resilient.addListener(sessions -> {
+            throw new IllegalStateException("boom");
+        });
+        resilient.addListener(sessions -> reached[0]++);
+        resilient.create("10.0.0.4", "TV", "v1", "clip", "video/mp4", 100, false);
+        equal("a failing listener does not stop the rest", 1, reached[0]);
     }
 
     // ------------------------------------------------------------- log, JSON
