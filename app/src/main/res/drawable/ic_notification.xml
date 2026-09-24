@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notification small icon. The system renders it as a flat white mask, so the
+  paths are filled white instead of using the shared icon tint.
+  Shape: a phone screen casting a signal to a display.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6,2h9a1.4,1.4 0 0 1 1.4,1.4v9.2A1.4,1.4 0 0 1 15,14H6a1.4,1.4 0 0 1 -1.4,-1.4V3.4A1.4,1.4 0 0 1 6,2zM6.4,3.6v9.2h8.2V3.6z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15.2,17.2h5.6a1.2,1.2 0 0 1 1.2,1.2v2.4a1.2,1.2 0 0 1 -1.2,1.2h-5.6a1.2,1.2 0 0 1 -1.2,-1.2v-2.4a1.2,1.2 0 0 1 1.2,-1.2zM17.6,16.2h0.8v1h-0.8zM5.2,16.6l1.5,1.5 -1.5,1.5 -1.5,-1.5z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8.6,18.4a4.2,4.2 0 0 0 0,-5.9l1.2,-1.2a5.9,5.9 0 0 1 0,8.3zM11.4,20.9a7.7,7.7 0 0 0 0,-10.9l1.2,-1.2a9.4,9.4 0 0 1 0,13.3z" />
+</vector>

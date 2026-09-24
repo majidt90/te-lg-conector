@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:elevation="@dimen/elevation_raised"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/space_xs"
+        android:paddingRight="@dimen/screen_padding"
+        android:paddingTop="@dimen/space_s"
+        android:paddingBottom="@dimen/space_s">
+
+        <ImageButton
+            android:id="@+id/back"
+            style="@style/Widget.IconButton.Bare"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:contentDescription="@string/cd_back"
+            android:src="@drawable/ic_chevron_left" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/Text.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/diagnostics_title" />
+
+            <TextView
+                android:id="@+id/diagnostics_subtitle"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/diagnostics_share"
+            style="@style/Widget.IconButton"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:contentDescription="@string/action_share_log"
+            android:src="@drawable/ic_share" />
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="@dimen/screen_padding"
+            android:paddingRight="@dimen/screen_padding"
+            android:paddingBottom="@dimen/space_s">
+
+            <TextView
+                android:id="@+id/filter_all"
+                style="@style/Widget.Chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_chip"
+                android:text="@string/filter_all" />
+
+            <TextView
+                android:id="@+id/filter_warnings"
+                style="@style/Widget.Chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/space_xs"
+                android:background="@drawable/bg_chip"
+                android:text="@string/filter_warnings" />
+
+            <TextView
+                android:id="@+id/filter_errors"
+                style="@style/Widget.Chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/space_xs"
+                android:background="@drawable/bg_chip"
+                android:text="@string/filter_errors" />
+
+            <TextView
+                android:id="@+id/filter_stream"
+                style="@style/Widget.Chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/space_xs"
+                android:background="@drawable/bg_chip"
+                android:text="@string/filter_streaming" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <LinearLayout
+        android:id="@+id/diagnostics_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_soft"
+        android:orientation="vertical"
+        android:padding="@dimen/space_m" />
+
+    <ListView
+        android:id="@+id/diagnostics_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:divider="@null"
+        android:paddingBottom="@dimen/space_xl"
+        android:scrollbars="none" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:elevation="@dimen/elevation_raised"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_s">
+
+        <Button
+            android:id="@+id/diagnostics_export"
+            style="@style/Button.Secondary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/action_export_log" />
+
+        <Button
+            android:id="@+id/diagnostics_clear"
+            style="@style/Button.Ghost"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/space_s"
+            android:layout_weight="1"
+            android:text="@string/action_clear_log" />
+    </LinearLayout>
+</LinearLayout>

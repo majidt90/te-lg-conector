@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: phone screen casting to a TV, inside the 72dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M34,32 h24 a5,5 0 0 1 5,5 v34 a5,5 0 0 1 -5,5 h-24 a5,5 0 0 1 -5,-5 v-34 a5,5 0 0 1 5,-5 z M34,32 h24 a5,5 0 0 1 5,5 v34 a5,5 0 0 1 -5,5 h-24 a5,5 0 0 1 -5,-5 v-34 a5,5 0 0 1 5,-5 z" />
+    <path android:fillColor="#2B4BF2"
+        android:pathData="M35,37 h22 a2,2 0 0 1 2,2 v26 a2,2 0 0 1 -2,2 h-22 a2,2 0 0 1 -2,-2 v-26 a2,2 0 0 1 2,-2 z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M42,46 L42,60 L53,53 z" />
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="4.5"
+        android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M70,44 a16,16 0 0 1 0,20 M77,38 a25,25 0 0 1 0,32" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M32,80 h28 a2.5,2.5 0 0 1 0,5 h-28 a2.5,2.5 0 0 1 0,-5 z" />
+</vector>

@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MediaBridge</string>
+    <string name="app_tagline">Stream your phone to your LG TV</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_settings">Settings</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_done">Done</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_next">Next</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_start_server">Start sharing</string>
+    <string name="action_stop_server">Stop sharing</string>
+    <string name="action_scan">Scan for TVs</string>
+    <string name="action_scanning">Scanning…</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="action_grant">Allow</string>
+    <string name="action_share_log">Share log</string>
+    <string name="action_export_log">Save log to file</string>
+    <string name="action_clear_log">Clear log</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_copied">Copied to clipboard</string>
+    <string name="action_forget">Forget</string>
+    <string name="action_reconnect">Reconnect</string>
+    <string name="action_pair">Pair</string>
+    <string name="action_play_on_tv">Play on TV</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_play">Play</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_browse_folders">Folders</string>
+    <string name="action_view_details">Details</string>
+    <string name="action_stop_all">Stop all streams</string>
+
+    <!-- Onboarding -->
+    <string name="title_onboarding">Getting started</string>
+    <string name="onboard_welcome_title">Your phone, on the big screen</string>
+    <string name="onboard_welcome_body">MediaBridge turns this phone into a DLNA media server. Your LG TV finds it on your Wi‑Fi network and streams your videos, photos and music straight from the phone — nothing is uploaded anywhere.</string>
+    <string name="onboard_net_title">One Wi‑Fi network</string>
+    <string name="onboard_net_body">Connect the phone and the TV to the same Wi‑Fi network. Guest networks, client isolation and “AP isolation” on the router block device discovery — if the TV cannot see the phone, that is the first thing to check.</string>
+    <string name="onboard_perm_title">Permissions</string>
+    <string name="onboard_perm_body">Media library access lets the TV browse your photos, videos and music. Notifications keep the sharing service visible while the screen is off. Nothing else is requested.</string>
+    <string name="onboard_tv_title">On the TV</string>
+    <string name="onboard_tv_body">Open Photos &amp; Videos (or Music) on the TV, choose Device Selection, then pick “MediaBridge” from the list. webOS 6 also exposes the same list through SmartShare.</string>
+    <string name="onboard_finish">Start sharing</string>
+    <string name="onboard_progress">Step %1$d of %2$d</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Local network sharing</string>
+    <string name="home_server_running">Sharing is on</string>
+    <string name="home_server_stopped">Sharing is off</string>
+    <string name="home_server_running_body">Your phone is visible to DLNA players on this network.</string>
+    <string name="home_server_stopped_body">Turn sharing on so your TV can browse this phone.</string>
+    <string name="home_address">Server address</string>
+    <string name="home_clients">Players connected</string>
+    <string name="home_library_size">Library</string>
+    <string name="home_uptime">Sharing for %1$s</string>
+    <string name="home_no_network_title">No Wi‑Fi network</string>
+    <string name="home_no_network_body">Connect to the same Wi‑Fi network as your TV to share media.</string>
+    <string name="home_section_streaming">Live streams</string>
+    <string name="home_section_tvs">LG TVs found</string>
+    <string name="home_section_quick">Quick actions</string>
+    <string name="home_checklist">Readiness check</string>
+    <string name="home_open_streaming">View streaming status</string>
+    <string name="home_open_diagnostics">Diagnostics</string>
+    <string name="home_share_tip">Tip: keep the phone plugged in for long movies and leave Wi‑Fi on.</string>
+    <string name="home_last_stream">Last streamed: %1$s</string>
+
+    <!-- Discovery / devices -->
+    <string name="discovery_title">LG TVs on this network</string>
+    <string name="discovery_subtitle">Searching with SSDP (UPnP). The TV must be powered on and on the same Wi‑Fi network.</string>
+    <string name="discovery_empty_title">No LG TV found yet</string>
+    <string name="discovery_empty_body">Make sure the TV is on and connected to the same network. Some routers block discovery between wireless clients — try a wired connection for the TV or enable “allow multicast between clients”.</string>
+    <string name="discovery_manual_title">Add by IP address</string>
+    <string name="discovery_manual_body">If discovery is blocked by your router, enter the TV’s address manually.</string>
+    <string name="discovery_manual_hint">192.168.1.20</string>
+    <string name="discovery_manual_invalid">Enter a valid IPv4 address, for example 192.168.1.20</string>
+    <string name="discovery_added">Added %1$s</string>
+    <string name="discovery_unreachable">Could not reach %1$s — check the address and that the TV is on.</string>
+    <string name="discovery_found_count">%1$d device(s) found</string>
+    <string name="discovery_not_lg">Not an LG TV</string>
+    <string name="discovery_media_renderer">Playback control available</string>
+    <string name="discovery_no_renderer">Browsing only (no remote playback control)</string>
+    <string name="devices_title">Saved devices</string>
+    <string name="devices_empty_title">No saved devices</string>
+    <string name="devices_empty_body">Pair with your LG TV to unlock remote playback controls and the “Play on TV” button.</string>
+    <string name="devices_paired">Paired</string>
+    <string name="devices_not_paired">Not paired</string>
+    <string name="devices_last_seen">Last seen %1$s</string>
+    <string name="devices_forget_confirm">Forget %1$s? The pairing key stored on this phone will be deleted. You can pair again at any time.</string>
+    <string name="devices_forget_done">%1$s forgotten</string>
+    <string name="devices_default">Default TV</string>
+    <string name="devices_make_default">Make default</string>
+    <string name="devices_capabilities">Capabilities</string>
+    <string name="devices_cap_pairing">webOS pairing (SSAP)</string>
+    <string name="devices_cap_avtransport">UPnP playback control</string>
+    <string name="devices_cap_rendering">Volume control</string>
+    <string name="devices_cap_launcher">App launch</string>
+    <string name="devices_cap_yes">Supported</string>
+    <string name="devices_cap_no">Not detected</string>
+    <string name="devices_cap_unknown">Unknown</string>
+
+    <!-- Pairing -->
+    <string name="pairing_title">Pairing with %1$s</string>
+    <string name="pairing_intro">A prompt will appear on the TV. Press “Yes” on the TV remote to allow this phone to control playback.</string>
+    <string name="pairing_waiting">Waiting for the TV… press “Yes” on the TV remote.</string>
+    <string name="pairing_success">Paired with %1$s</string>
+    <string name="pairing_denied">The TV declined the pairing request.</string>
+    <string name="pairing_timeout">No response from the TV. Check that the TV is on and on the same network.</string>
+    <string name="pairing_failed">Pairing failed: %1$s</string>
+    <string name="pairing_retry_hint">You can pair again later from the Devices tab.</string>
+
+    <!-- Library -->
+    <string name="library_title">Media library</string>
+    <string name="tab_photos">Photos</string>
+    <string name="tab_videos">Videos</string>
+    <string name="tab_music">Music</string>
+    <string name="library_indexing">Indexing media…</string>
+    <string name="library_indexed">%1$s items indexed</string>
+    <string name="library_permission_title">Media access needed</string>
+    <string name="library_permission_body">Allow access to photos, videos and music so the TV can browse them. Files are streamed directly from this phone; nothing is copied or uploaded.</string>
+    <string name="library_permission_partial">Limited access granted: the TV will only see the items you selected. Grant full access for the whole library.</string>
+    <string name="library_empty_photos">No photos found on this phone.</string>
+    <string name="library_empty_videos">No videos found on this phone.</string>
+    <string name="library_empty_music">No music found on this phone.</string>
+    <string name="library_empty_generic">Nothing to show yet.</string>
+    <string name="library_folders">Folders</string>
+    <string name="library_up">Up</string>
+    <string name="library_search_hint">Search library</string>
+    <string name="library_item_count">%1$s items</string>
+    <string name="library_one_item">1 item</string>
+    <string name="library_loading_more">Loading…</string>
+
+    <!-- Compatibility -->
+    <string name="compat_direct">Direct play</string>
+    <string name="compat_direct_desc">This file matches the TV’s native playback support and is streamed untouched.</string>
+    <string name="compat_photo_convert">Photo conversion</string>
+    <string name="compat_photo_convert_desc">WebOS does not decode this image format, so it will be converted to JPEG on the fly.</string>
+    <string name="compat_audio_convert">Audio conversion</string>
+    <string name="compat_audio_convert_desc">The TV cannot decode this audio codec. MediaBridge will convert it to AAC once and cache it, so seeking still works.</string>
+    <string name="compat_unsupported">Not supported by this TV</string>
+    <string name="compat_checking">Checking compatibility…</string>
+    <string name="compat_details_title">Playback compatibility</string>
+    <string name="compat_container">Container</string>
+    <string name="compat_video_codec">Video</string>
+    <string name="compat_audio_codec">Audio</string>
+    <string name="compat_resolution">Resolution</string>
+    <string name="compat_bitrate">Bitrate</string>
+    <string name="compat_duration">Duration</string>
+    <string name="compat_size">Size</string>
+    <string name="compat_reason">Reason</string>
+    <string name="compat_verified">Verified by reading the file’s tracks on this device</string>
+    <string name="compat_estimated">Estimated from the file name and MIME type</string>
+
+    <!-- Streaming / sessions -->
+    <string name="title_streaming">Streaming status</string>
+    <string name="sessions_active">Active streams</string>
+    <string name="sessions_empty_title">Nothing is playing</string>
+    <string name="sessions_empty_body">When your TV starts a video, photo or song from this phone, it appears here with live transfer details.</string>
+    <string name="sessions_client">Player</string>
+    <string name="sessions_media">Media</string>
+    <string name="sessions_progress">Transferred %1$s of %2$s</string>
+    <string name="sessions_rate">%1$s/s</string>
+    <string name="sessions_started">Started %1$s</string>
+    <string name="sessions_seekable">Seeking supported</string>
+    <string name="sessions_not_seekable">Seeking not requested yet</string>
+    <string name="sessions_total_rate">Total %1$s/s</string>
+    <string name="sessions_remote_control">Remote playback</string>
+    <string name="sessions_no_renderer">Remote playback control is unavailable for this TV. Browse to the media on the TV to play it.</string>
+    <string name="sessions_position">Position %1$s / %2$s</string>
+    <string name="sessions_volume">TV volume %1$d%%</string>
+    <string name="sessions_volume_unavailable">Volume control unavailable</string>
+    <string name="sessions_seek_to">Seek to</string>
+    <string name="sessions_transcoding">Converting audio… %1$d%%</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_server">Sharing</string>
+    <string name="settings_server_name">Server name on TV</string>
+    <string name="settings_server_name_hint">MediaBridge</string>
+    <string name="settings_server_name_help">This is the name your TV shows in its device list.</string>
+    <string name="settings_port">Port</string>
+    <string name="settings_port_help">Ports above 1024 are recommended. Change it if another app already uses the port.</string>
+    <string name="settings_port_invalid">Choose a port between 1024 and 65535</string>
+    <string name="settings_port_in_use">Port %1$d is already in use on this device</string>
+    <string name="settings_start_on_boot">Start sharing when the phone boots</string>
+    <string name="settings_keep_awake">Keep Wi‑Fi awake while sharing</string>
+    <string name="settings_keep_awake_help">Required for reliable playback with the screen off. Uses more battery.</string>
+    <string name="settings_battery">Battery optimisation</string>
+    <string name="settings_battery_help">Android may suspend background networking. Excluding MediaBridge keeps long streams alive.</string>
+    <string name="settings_battery_exempt">Excluded — long streams are safe</string>
+    <string name="settings_battery_optimised">Optimised — the system may pause transfers when idle</string>
+    <string name="settings_battery_request">Request exemption</string>
+    <string name="settings_battery_banner">Battery optimisation may interrupt long streams</string>
+    <string name="settings_section_playback">Playback</string>
+    <string name="settings_photo_convert">Convert unsupported photos to JPEG</string>
+    <string name="settings_photo_convert_help">Needed for HEIC/HEIF photos and very large images, which webOS cannot display directly.</string>
+    <string name="settings_audio_convert">Convert unsupported audio to AAC</string>
+    <string name="settings_audio_convert_help">Converts codecs such as Opus, AMR or DTS audio to AAC so the TV can play them; cached for instant replay and seeking.</string>
+    <string name="settings_hide_unsupported">Hide files this TV cannot play</string>
+    <string name="settings_sharing_scope">Shared content</string>
+    <string name="settings_scope_all">All media</string>
+    <string name="settings_scope_videos_photos">Videos and photos</string>
+    <string name="settings_scope_audio">Music only</string>
+    <string name="settings_folder_view">Expose folder structure</string>
+    <string name="settings_folder_view_help">Shows real folders instead of only the flat “Videos / Photos / Music” view.</string>
+    <string name="settings_section_privacy">Privacy &amp; security</string>
+    <string name="settings_lan_only">Local network only</string>
+    <string name="settings_lan_only_help">Binds the server to your Wi‑Fi address. Disable only if you need a different interface (for example an Ethernet adapter).</string>
+    <string name="settings_trusted_only">Trusted devices only</string>
+    <string name="settings_trusted_only_help">Only devices you have paired or explicitly approved may fetch media. DLNA itself has no authentication, so this adds a device allow-list on top.</string>
+    <string name="settings_trusted_devices">Trusted devices</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_diagnostics">Diagnostics</string>
+    <string name="settings_diagnostics_help">Live status, network details and the event log.</string>
+    <string name="settings_about">About MediaBridge</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_about_body">A local-network DLNA/UPnP media server with webOS remote control. Built on open standards: SSDP discovery, UPnP AV (ContentDirectory, ConnectionManager, AVTransport, RenderingControl) and the webOS second-screen socket. No cloud services, no analytics, no media leaves your network.</string>
+    <string name="settings_licenses">Protocol notes</string>
+    <string name="settings_licenses_body">DLNA guidelines published by the DLNA; UPnP Device Architecture and UPnP AV specifications; webOS TV platform documentation. LG ThinQ and BubbleUPnP were studied for behaviour only — no proprietary code or undocumented API is used.</string>
+    <string name="settings_reset">Reset app state</string>
+    <string name="settings_reset_help">Clears settings, paired devices and cached conversions.</string>
+    <string name="settings_reset_confirm">Reset MediaBridge? Settings, paired TVs and cached conversions will be removed.</string>
+    <string name="settings_reset_done">App state reset</string>
+
+    <!-- Diagnostics -->
+    <string name="title_diagnostics">Diagnostics</string>
+    <string name="diag_section_status">Status</string>
+    <string name="diag_server">Media server</string>
+    <string name="diag_server_running">Running on %1$s</string>
+    <string name="diag_server_stopped">Stopped</string>
+    <string name="diag_network">Network</string>
+    <string name="diag_network_value">%1$s (%2$s)</string>
+    <string name="diag_ssdp">SSDP discovery</string>
+    <string name="diag_ssdp_listening">Listening on 239.255.255.250:1900</string>
+    <string name="diag_ssdp_idle">Not running</string>
+    <string name="diag_msearch">M‑SEARCH requests answered</string>
+    <string name="diag_clients">HTTP clients served</string>
+    <string name="diag_locks">Wake locks</string>
+    <string name="diag_locks_value">%1$s</string>
+    <string name="diag_battery">Battery optimisation</string>
+    <string name="diag_last_request">Last request</string>
+    <string name="diag_section_tests">Self tests</string>
+    <string name="diag_test_http">Fetch the server description from this device</string>
+    <string name="diag_test_ssdp">Announce presence over SSDP</string>
+    <string name="diag_test_thumb">Render a thumbnail</string>
+    <string name="diag_test_ok">Passed in %1$d ms</string>
+    <string name="diag_test_failed">Failed: %1$s</string>
+    <string name="diag_running">Running…</string>
+    <string name="diag_section_log">Event log</string>
+    <string name="diag_log_empty">No events recorded yet.</string>
+    <string name="diag_filter_all">All</string>
+    <string name="diag_filter_errors">Errors</string>
+    <string name="diag_exported">Log saved to %1$s</string>
+    <string name="diag_export_failed">Could not save the log: %1$s</string>
+    <string name="diag_hint_tv_cannot_see">TV cannot see the phone?</string>
+    <string name="diag_hint_tv_cannot_see_body">1. Both devices on the same Wi‑Fi, not a guest network.
+2. Router: disable “client/AP isolation” or IGMP snooping issues.
+3. Keep the phone’s Wi‑Fi on; disable “Wi‑Fi power saving” per network if available.
+4. Restart the sharing service, then re-open Photos &amp; Videos on the TV.
+5. VPNs on the phone can hide the local interface — turn them off while streaming.</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Sharing service</string>
+    <string name="notif_channel_desc">Keeps the media server reachable while the screen is off.</string>
+    <string name="notif_channel_streaming">Streaming activity</string>
+    <string name="notif_channel_streaming_desc">Highlights active playback on your TV.</string>
+    <string name="notif_title">MediaBridge is sharing</string>
+    <string name="notif_text_idle">Waiting for your TV at %1$s</string>
+    <string name="notif_text_streaming">%1$d stream(s) — %2$s</string>
+    <string name="notif_action_stop">Stop</string>
+    <string name="notif_action_open">Open</string>
+
+    <!-- Generic states -->
+    <string name="state_loading">Loading…</string>
+    <string name="state_error_title">Something went wrong</string>
+    <string name="state_error_body">%1$s</string>
+    <string name="state_success">Done</string>
+    <string name="empty_state_hint">Pull to refresh or try again in a moment.</string>
+    <string name="unit_bytes_b">%1$s B</string>
+    <string name="unit_kb">%1$s KB</string>
+    <string name="unit_mb">%1$s MB</string>
+    <string name="unit_gb">%1$s GB</string>
+    <string name="unit_per_second">%1$s/s</string>
+    <string name="time_seconds_ago">%1$d s ago</string>
+    <string name="time_minutes_ago">%1$d min ago</string>
+    <string name="time_hours_ago">%1$d h ago</string>
+    <string name="time_just_now">just now</string>
+    <string name="time_days_ago">%1$d d ago</string>
+
+    <!-- Accessibility -->
+    <string name="cd_nav_home">Home tab</string>
+    <string name="cd_nav_library">Library tab</string>
+    <string name="cd_nav_devices">Devices tab</string>
+    <string name="cd_nav_settings">Settings tab</string>
+    <string name="cd_status_ok">Status: working</string>
+    <string name="cd_status_warning">Status: needs attention</string>
+    <string name="cd_status_error">Status: error</string>
+    <string name="cd_status_idle">Status: idle</string>
+    <string name="cd_media_thumbnail">Thumbnail of %1$s</string>
+    <string name="cd_back">Go back</string>
+    <string name="cd_server_toggle">Toggle media sharing</string>
+    <string name="cd_seek">Playback position</string>
+    <string name="cd_volume">Television volume</string>
+
+    <!-- Errors -->
+    <string name="error_no_wifi">No Wi‑Fi connection. Connect to the same network as your TV.</string>
+    <string name="error_port_bind">Could not start the server on port %1$d. Another app may be using it.</string>
+    <string name="error_permission_media">Media permission is required before the TV can browse your library.</string>
+    <string name="error_notification_permission">Notification permission is off; the sharing service may be harder to control.</string>
+    <string name="error_unknown">Unexpected error: %1$s</string>
+    <string name="error_offline_device">%1$s is not reachable right now.</string>
+
+    <!-- Home, devices, settings and shared chrome -->
+    <string name="onboarding_brand_tagline">Share your phone with the TV</string>
+    <string name="home_hero_stopped">Not sharing yet</string>
+    <string name="home_hero_stopped_detail">Start sharing to let your LG TV browse this phone’s videos, photos and music.</string>
+    <string name="section_connected_tv">Connected TV</string>
+    <string name="home_no_device_title">No TV connected</string>
+    <string name="home_no_device_body">Scan for devices on your network to pick your LG TV.</string>
+    <string name="home_no_streams">Nothing has been streamed yet. Open Photos &amp; Videos or Music on the TV and pick this phone.</string>
+    <string name="media_videos">Videos</string>
+    <string name="media_photos">Photos</string>
+    <string name="media_music">Music</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_add_by_address">Add by address</string>
+    <string name="action_sort">Sort</string>
+    <string name="action_open_sessions">Open streaming activity</string>
+    <string name="action_open_on_phone">Open on phone</string>
+    <string name="action_copy_stream_url">Copy stream link</string>
+    <string name="action_stream_url_copied">Stream link copied</string>
+    <string name="section_found_now">Found on this network</string>
+    <string name="section_saved_devices">Saved devices</string>
+    <string name="section_server">Server</string>
+    <string name="section_network">Network</string>
+    <string name="section_storage">Storage and cache</string>
+    <string name="section_about">About</string>
+    <string name="section_file_details">File details</string>
+    <string name="sessions_title">Streaming activity</string>
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="filter_all">All</string>
+    <string name="filter_warnings">Warnings</string>
+    <string name="filter_errors">Errors</string>
+    <string name="filter_streaming">Streaming</string>
+    <string name="devices_intro_title">Find your television</string>
+    <string name="devices_intro_body">Your TV appears in this list when it answers a search on the same Wi‑Fi network. Keep the TV switched on while scanning.</string>
+    <string name="chip_connected">Connected</string>
+    <string name="chip_lg_webos">LG webOS</string>
+    <string name="cd_open_sessions">Open streaming activity</string>
+    <string name="cd_open_diagnostics">Open diagnostics</string>
+    <string name="cd_copy_address">Copy server address</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="cd_rewind">Rewind</string>
+    <string name="cd_play_pause">Play or pause</string>
+    <string name="cd_stop">Stop playback</string>
+    <string name="cd_volume_down">Volume down</string>
+    <string name="cd_volume_up">Volume up</string>
+    <string name="cd_add_device">Add a television by address</string>
+    <string name="cd_open_settings">Open settings</string>
+    <string name="cd_media_preview">Preview</string>
+    <string name="badge_direct">plays directly</string>
+    <string name="badge_photo_converted">converted for the TV</string>
+    <string name="badge_audio_converted">converted to AAC</string>
+    <string name="badge_unsupported">not supported by the TV</string>
+    <string name="section_library">Library</string>
+    <string name="section_recent_streams">Recent activity</string>
+    <string name="devices_hint_network">Multicast is often filtered by routers and guest networks. If your TV does not appear, put the phone and the TV on the same Wi‑Fi band and disable client isolation.</string>
+
+    <!-- Onboarding copy -->
+    <string name="ob_welcome_title">Your phone, on the big screen</string>
+    <string name="ob_welcome_body">MediaBridge turns this phone into a DLNA media server, the same standard LG televisions and other players already use for SmartShare and Photos &amp; Videos.</string>
+    <string name="ob_welcome_point_1">The TV browses your phone and plays files directly — nothing is copied first.</string>
+    <string name="ob_welcome_point_2">Nothing leaves your Wi‑Fi network. No account, no cloud, no internet upload.</string>
+    <string name="ob_welcome_point_3">Keep using your phone while the TV plays: sharing survives the screen turning off.</string>
+    <string name="ob_permission_title">Two permissions, both explained</string>
+    <string name="ob_permission_body">MediaBridge asks for the smallest set of permissions it can work with, and only to do the two jobs below.</string>
+    <string name="ob_permission_point_1">Photos, videos and music access — so the TV can read the files you choose to share.</string>
+    <string name="ob_permission_point_2">Notification access — the mandatory notification that keeps sharing alive while your screen is off.</string>
+    <string name="ob_permission_point_3">No call, contact, location or account access is ever requested.</string>
+    <string name="ob_network_title">Same network, please</string>
+    <string name="ob_network_body">The TV finds this phone through a multicast search on your local network, so both devices need to be on the same Wi‑Fi.</string>
+    <string name="ob_network_point_1">Phone and TV on the same Wi‑Fi — ideally the same band.</string>
+    <string name="ob_network_point_2">Guest networks and “client isolation” block device‑to‑device traffic.</string>
+    <string name="ob_network_point_3">A VPN on the phone can hide the local network from the TV.</string>
+    <string name="ob_ready_title">Ready to share</string>
+    <string name="ob_ready_body">Turn sharing on, then open Photos &amp; Videos or Music on the TV and pick this phone from the device list.</string>
+    <string name="ob_ready_point_1">Sharing stays on while your phone sleeps, until you stop it.</string>
+    <string name="ob_ready_point_2">You can start and stop it from the notification or the home screen.</string>
+    <string name="ob_ready_point_3">Diagnostics shows exactly what the TV asked for if anything goes wrong.</string>
+
+    <!-- Compatibility verdicts -->
+    <string name="verdict_direct">Plays directly on this TV</string>
+    <string name="verdict_photo_convert">Converted before the TV sees it</string>
+    <string name="verdict_audio_convert">Audio converted to AAC</string>
+    <string name="verdict_unsupported">Not in the TV’s supported list</string>
+
+    <!-- Media detail rows -->
+    <string name="detail_format">Format</string>
+    <string name="detail_resolution">Resolution</string>
+    <string name="detail_duration">Duration</string>
+    <string name="detail_size">Size</string>
+    <string name="detail_folder">Folder</string>
+    <string name="detail_protocol">DLNA protocol</string>
+    <string name="detail_artist">Artist</string>
+    <string name="detail_album">Album</string>
+    <string name="detail_added">Added</string>
+
+    <!-- Device screen extras -->
+    <string name="devices_add_by_address_hint">Enter the TV’s address on your network, for example 192.168.1.50. The phone will ask it for its UPnP description.</string>
+    <string name="devices_connected">Connected to %1$s</string>
+    <string name="devices_forgot">Forgot %1$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_server_name_desc">The name your TV shows in its device list.</string>
+    <string name="settings_port_desc">HTTP port for media transfers. Change it if another app already uses the default.</string>
+    <string name="settings_start_boot_desc">Resume sharing automatically after the phone restarts.</string>
+    <string name="settings_share_scope">Share which media</string>
+    <string name="settings_share_scope_desc">Limit the TV to videos and photos, or to music only.</string>
+    <string name="settings_hide_unsupported_desc">Keep files the TV cannot play out of the TV’s browse list.</string>
+    <string name="settings_folder_view_desc">Also offer a folder structure, like a file browser.</string>
+    <string name="settings_convert_photos_desc">Convert HEIC and oversized photos to JPEG the TV can display.</string>
+    <string name="settings_convert_audio">Convert unsupported audio</string>
+    <string name="settings_convert_audio_desc">Turn FLAC, ALAC, Opus and other formats into AAC for the TV.</string>
+    <string name="settings_reindex">Rebuild library index</string>
+    <string name="settings_reindex_desc">Rescan the phone for new and removed media.</string>
+    <string name="settings_keep_wifi">Keep Wi‑Fi awake while sharing</string>
+    <string name="settings_keep_wifi_desc">Helps long videos stay smooth on phones with aggressive power saving.</string>
+    <string name="settings_trusted_only_desc">Only serve media to addresses you have approved.</string>
+    <string name="settings_trusted_devices_desc">Devices currently allowed to read your library.</string>
+    <string name="settings_trusted_count">%1$d device(s)</string>
+    <string name="settings_trusted_empty">No device has been approved yet. Turn on “trusted devices only” after your TV connects once.</string>
+    <string name="settings_battery_desc">Android’s battery optimisation can stop long streams. Exempting MediaBridge is recommended.</string>
+    <string name="settings_clear_cache">Clear converted media</string>
+    <string name="settings_clear_cache_desc">Deletes cached conversions. They are rebuilt automatically when needed.</string>
+    <string name="settings_cache_cleared">Cache cleared</string>
+    <string name="settings_cache_limit">Retention</string>
+    <string name="settings_cache_limit_desc">Photos and converted audio are trimmed automatically to stay inside this limit.</string>
+    <string name="settings_version_desc">MediaBridge version installed on this phone.</string>
+    <string name="settings_device_desc">The phone acting as the media server.</string>
+    <string name="settings_uuid">Device UUID</string>
+    <string name="settings_uuid_desc">Stable identity the TV remembers between sessions.</string>
+    <string name="settings_theme_dark_desc">Force dark colours, or follow the system in the option below.</string>
+    <string name="settings_theme_system_desc">Use the system’s light or dark setting.</string>
+    <string name="settings_replay_onboarding">Show the introduction again</string>
+    <string name="settings_replay_onboarding_desc">Reopens the setup steps and the network check.</string>
+
+    <!-- Diagnostics screen -->
+    <string name="diag_log_entries">%1$d log entries</string>
+    <string name="diag_errors">%1$d error(s)</string>
+    <string name="diag_msearch_value">%1$d search requests answered</string>
+    <string name="diag_clients_value">%1$d requests served, %2$d active</string>
+    <string name="diag_battery_restricted">optimised by the system</string>
+    <string name="diag_battery_unrestricted">unrestricted</string>
+
+    <!-- Errors -->
+    <string name="error_server_off">Sharing is off. Start sharing before sending media to the TV.</string>
+    <string name="settings_start_boot">Start sharing on boot</string>
+    <string name="settings_convert_photos">Convert unsupported photos</string>
+    <string name="settings_device">This phone</string>
+    <string name="time_never">never</string>
+</resources>

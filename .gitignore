@@ -1,0 +1,28 @@
+# Build output
+.build/
+dist/
+*.apk
+
+# The one exception: a ready-to-install APK is committed under download/ so it can
+# be fetched straight from the repository (see download/README.md).
+!download/*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Gradle / Android Studio
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.iml
+.idea/
+gradle/wrapper/gradle-wrapper.jar
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.log
