@@ -44,6 +44,12 @@ public final class PhotoTranscoder {
         public final File file;
         public final String mime = "image/jpeg";
         public final long length;
+        /**
+         * True only when <em>this</em> call produced the file. A cache hit is
+         * false: the caller already knows from the compatibility verdict that a
+         * conversion is involved, and a flag that is true either way cannot be
+         * used to tell a fast response from slow work.
+         */
         public final boolean converted;
 
         Result(File file, boolean converted) {
@@ -60,7 +66,7 @@ public final class PhotoTranscoder {
         // A zero-byte file is a failure, not a cache hit: it would be served as
         // an empty response and the TV would show a broken image.
         if (TranscodeCache.isUsable(target)) {
-            return new Result(target, true);
+            return new Result(target, false);
         }
         if (!allowConversion) {
             throw new IOException("conversion disabled");

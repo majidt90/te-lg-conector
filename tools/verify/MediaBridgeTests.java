@@ -491,6 +491,26 @@ public final class MediaBridgeTests {
         check("the newest conversion survives",
                 trimmable.target("a5_1000.m4a").exists());
 
+        // Trimming must not delete a conversion that is still running: its scratch
+        // file is the youngest-looking thing in the cache, but the oldest-first
+        // order does not know that on its own.
+        TranscodeCache busy = new TranscodeCache(root, "busy");
+        busy.prepare();
+        File running = busy.newPart("b0_1000.m4a");
+        write(running, 1000);
+        running.setLastModified(1_000_000L);
+        for (int i = 1; i <= 2; i++) {
+            File done = busy.target("b" + i + "_1000.m4a");
+            write(done, 1000);
+            done.setLastModified(1_000_000L + i * 10_000L);
+        }
+        busy.trim(1000);
+        check("trimming keeps a conversion that is still in flight", running.isFile());
+        check("and still removes the finished ones oldest-first",
+                !busy.target("b1_1000.m4a").exists() && !busy.target("b2_1000.m4a").exists());
+        running.delete();
+        busy.clear();
+
         // Leftovers from an interrupted run are swept away - but a conversion that
         // is still running must keep its scratch file, or the TV's request dies.
         File abandoned = trimmable.newPart("a9_1000.m4a");

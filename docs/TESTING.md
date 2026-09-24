@@ -74,7 +74,7 @@ lifecycle, **U** = UI.
 
 ## What is verified without a device
 
-`python3 tools/verify.py` runs a 455-assertion JVM suite over the protocol layer
+`python3 tools/verify.py` runs a 457-assertion JVM suite over the protocol layer
 (the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
 the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
@@ -83,8 +83,8 @@ covered as well, because a bug there is invisible until it bites: a half-written
 conversion must never appear under a finished file's name, a zero-byte file is a
 failure rather than a cache hit, two requests for the same item must not share a
 scratch file, a sweep of unfinished conversions must never touch one that is still
-running, and trimming must remove the least recently used conversions first and
-keep the cache inside its budget.
+running, trimming must not evict one either, and trimming must remove the least
+recently used conversions first and keep the cache inside its budget.
 
 Diagnostics and formatting are covered too: the log keeps its newest 600 entries
 under load, reports how many older ones it discarded (so "the app missed the

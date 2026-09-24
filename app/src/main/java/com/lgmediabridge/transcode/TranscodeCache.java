@@ -111,9 +111,18 @@ public final class TranscodeCache {
             if (size <= maxBytes) {
                 break;
             }
+            if (isPart(file)) {
+                // A conversion in progress: worth more than a few megabytes of
+                // budget, and it will be accounted for when it is published.
+                continue;
+            }
             size -= file.length();
             file.delete();
         }
+    }
+
+    private static boolean isPart(File file) {
+        return file.getName().endsWith(".part");
     }
 
     /**
@@ -133,7 +142,7 @@ public final class TranscodeCache {
         }
         int removed = 0;
         for (File file : files) {
-            if (file.isFile() && file.getName().endsWith(".part")
+            if (file.isFile() && isPart(file)
                     && file.lastModified() < cutoff && file.delete()) {
                 removed++;
             }
