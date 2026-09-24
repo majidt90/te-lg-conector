@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#080B12</color>
+    <color name="surface">#111725</color>
+    <color name="surface_variant">#19202F</color>
+    <color name="surface_raised">#151C2B</color>
+    <color name="surface_sunken">#0D1320</color>
+    <color name="primary">#8AA4FF</color>
+    <color name="primary_dark">#6B89FF</color>
+    <color name="primary_container">#1C2950</color>
+    <color name="on_primary_container">#D8E1FF</color>
+    <color name="accent">#34D9CB</color>
+    <color name="accent_container">#0F3B39</color>
+    <color name="text_primary">#E9EEF9</color>
+    <color name="text_secondary">#A2ACC3</color>
+    <color name="text_tertiary">#75809A</color>
+    <color name="outline">#2A3346</color>
+    <color name="divider">#1F2839</color>
+    <color name="success">#4ED08A</color>
+    <color name="success_container">#10301F</color>
+    <color name="warning">#F3B44B</color>
+    <color name="warning_container">#33260D</color>
+    <color name="error">#FF7B7F</color>
+    <color name="error_container">#3A191C</color>
+    <color name="icon_tint">#A2ACC3</color>
+    <color name="scrim">#99000000</color>
+    <color name="gradient_start">#1E37A8</color>
+    <color name="gradient_end">#4520A8</color>
+    <color name="on_gradient">#FFFFFF</color>
+    <color name="on_gradient_muted">#C6D2FF</color>
+    <color name="shadow_tint">#66000000</color>
+    <color name="track">#232C3E</color>
+    <color name="ripple">#33A9BCFF</color>
+    <color name="notification_accent">#8AA4FF</color>
+</resources>

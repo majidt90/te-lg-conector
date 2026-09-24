@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="space_xxs">2dp</dimen>
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_s">8dp</dimen>
+    <dimen name="space_m">12dp</dimen>
+    <dimen name="space_l">16dp</dimen>
+    <dimen name="space_xl">20dp</dimen>
+    <dimen name="space_xxl">28dp</dimen>
+    <dimen name="space_xxxl">40dp</dimen>
+
+    <dimen name="screen_padding">20dp</dimen>
+    <dimen name="card_radius">20dp</dimen>
+    <dimen name="card_radius_small">14dp</dimen>
+    <dimen name="chip_radius">100dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="icon_s">18dp</dimen>
+    <dimen name="icon_m">24dp</dimen>
+    <dimen name="icon_l">32dp</dimen>
+    <dimen name="icon_xl">44dp</dimen>
+    <dimen name="elevation_card">2dp</dimen>
+    <dimen name="elevation_raised">6dp</dimen>
+    <dimen name="divider_height">1dp</dimen>
+    <dimen name="hero_height">172dp</dimen>
+    <dimen name="nav_height">64dp</dimen>
+    <dimen name="progress_height">6dp</dimen>
+    <dimen name="avatar">40dp</dimen>
+    <dimen name="avatar_l">52dp</dimen>
+    <dimen name="thumb">112dp</dimen>
+    <dimen name="photo_thumb">108dp</dimen>
+</resources>

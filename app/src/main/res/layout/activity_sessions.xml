@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:elevation="@dimen/elevation_raised"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/space_xs"
+        android:paddingRight="@dimen/screen_padding"
+        android:paddingTop="@dimen/space_s"
+        android:paddingBottom="@dimen/space_s">
+
+        <ImageButton
+            android:id="@+id/back"
+            style="@style/Widget.IconButton.Bare"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:contentDescription="@string/cd_back"
+            android:src="@drawable/ic_chevron_left" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/Text.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sessions_title" />
+
+            <TextView
+                android:id="@+id/sessions_subtitle"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/sessions_stop_all"
+            style="@style/Button.Destructive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/action_stop_all" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/sessions_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:paddingTop="@dimen/space_s"
+            android:paddingBottom="@dimen/space_xl"
+            android:scrollbars="none" />
+
+        <include
+            android:id="@+id/sessions_state"
+            layout="@layout/view_state" />
+    </FrameLayout>
+</LinearLayout>

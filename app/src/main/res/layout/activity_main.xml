@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Main shell: a header that reflects the sharing state on every tab, the content
+  area (one of four views), and the bottom navigation.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:elevation="@dimen/elevation_raised">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/screen_padding"
+                android:paddingRight="@dimen/space_s"
+                android:paddingTop="@dimen/space_m"
+                android:paddingBottom="@dimen/space_s">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/title"
+                        style="@style/Text.Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_home" />
+
+                    <TextView
+                        android:id="@+id/subtitle"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/state_loading" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/button_sessions"
+                    style="@style/Widget.IconButton"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:contentDescription="@string/cd_open_sessions"
+                    android:src="@drawable/ic_speed" />
+
+                <ImageButton
+                    android:id="@+id/button_diagnostics"
+                    style="@style/Widget.IconButton"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:contentDescription="@string/cd_open_diagnostics"
+                    android:src="@drawable/ic_bug" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/status_strip"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="@color/success" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/nav_height"
+        android:background="@drawable/bg_nav"
+        android:elevation="@dimen/elevation_raised"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/tab_home"
+            style="@style/Widget.NavTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/tab_home_icon"
+                style="@style/Widget.NavIcon"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_home" />
+
+            <TextView
+                android:id="@+id/tab_home_label"
+                style="@style/Widget.NavLabel"
+                android:text="@string/nav_home" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_library"
+            style="@style/Widget.NavTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/tab_library_icon"
+                style="@style/Widget.NavIcon"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_photo" />
+
+            <TextView
+                android:id="@+id/tab_library_label"
+                style="@style/Widget.NavLabel"
+                android:text="@string/nav_library" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_devices"
+            style="@style/Widget.NavTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/tab_devices_icon"
+                style="@style/Widget.NavIcon"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_tv" />
+
+            <TextView
+                android:id="@+id/tab_devices_label"
+                style="@style/Widget.NavLabel"
+                android:text="@string/nav_devices" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_settings"
+            style="@style/Widget.NavTab"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/tab_settings_icon"
+                style="@style/Widget.NavIcon"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_settings" />
+
+            <TextView
+                android:id="@+id/tab_settings_label"
+                style="@style/Widget.NavLabel"
+                android:text="@string/nav_settings" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
