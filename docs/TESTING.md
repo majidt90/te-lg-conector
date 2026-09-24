@@ -74,9 +74,9 @@ lifecycle, **U** = UI.
 
 ## What is verified without a device
 
-`python3 tools/verify.py` runs a JVM test suite over the protocol layer (the exact
-XML between phone and TV, the DLNA tokens, the range/time-seek maths and a live
-HTTP exchange). It exists because a regression in any of those shows up on the TV
+`python3 tools/verify.py` runs a 338-assertion JVM suite over the protocol layer
+(the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
+the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
 It has found six real defects so far, two of them severity-1:
 
