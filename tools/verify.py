@@ -62,6 +62,7 @@ SOURCES = [
     "compat/MediaCompat.java",
     "control/TvDevice.java",
     "control/SoapClient.java",
+    "server/MediaPath.java",
     "stream/StreamSession.java",
 ]
 

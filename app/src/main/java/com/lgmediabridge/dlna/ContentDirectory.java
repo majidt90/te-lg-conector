@@ -453,46 +453,18 @@ public final class ContentDirectory {
         String protocolInfo = Dlna.protocolInfo(mime, Dlna.seekable(result), converted, profile);
         String url = mediaUrl(baseUrl, item, mime);
         String thumbnailUrl = item.kind == MediaItem.Kind.PHOTO ? null
-                : baseUrl + "/thumb/" + item.objectId() + ".jpg";
+                : com.lgmediabridge.server.MediaPath.thumbnailUrl(baseUrl, item);
         long size = item.sizeBytes;
         long duration = item.kind == MediaItem.Kind.PHOTO ? 0 : item.durationMs;
         return DidlLite.item(entry.id, parentId, item, url, thumbnailUrl, mime, protocolInfo,
                 profile, size, duration);
     }
 
+    /** The URL scheme lives in MediaPath, which is exercised by tools/verify.py. */
     public static String mediaUrl(String baseUrl, MediaItem item, String mime) {
-        String extension = extensionFor(mime, item);
-        return baseUrl + "/media/" + item.objectId() + "/"
-                + HttpRequest.urlEncode(safeName(item.title)) + "." + extension;
+        return com.lgmediabridge.server.MediaPath.mediaUrl(baseUrl, item, mime);
     }
 
-    private static String extensionFor(String mime, MediaItem item) {
-        if (mime == null) {
-            return item.extension().isEmpty() ? "bin" : item.extension();
-        }
-        switch (mime) {
-            case "image/jpeg": return "jpg";
-            case "image/png": return "png";
-            case "image/gif": return "gif";
-            case "image/webp": return "webp";
-            case "image/bmp": return "bmp";
-            case "audio/mp4": return "m4a";
-            case "audio/mpeg": return "mp3";
-            case "audio/flac": return "flac";
-            case "audio/ogg": return "ogg";
-            case "audio/wav": return "wav";
-            case "video/mp4": return "mp4";
-            case "video/x-matroska": return "mkv";
-            case "video/webm": return "webm";
-            case "video/x-msvideo": return "avi";
-            case "video/mp2t": return "ts";
-            case "video/quicktime": return "mov";
-            case "video/3gpp": return "3gp";
-            case "video/x-ms-wmv": return "wmv";
-            default:
-                return item.extension().isEmpty() ? "bin" : item.extension();
-        }
-    }
 
     private static String safeName(String title) {
         if (title == null || title.trim().isEmpty()) {

@@ -194,11 +194,11 @@ public final class MediaServerRuntime {
             subscriptions.subscribe(request, response, settings.deviceUuid());
             return;
         }
-        if (path.startsWith("/media/")) {
+        if (MediaPath.isMedia(path)) {
             serveMedia(request, response, path);
             return;
         }
-        if (path.startsWith("/thumb/")) {
+        if (MediaPath.isThumbnail(path)) {
             serveThumbnail(request, response, path);
             return;
         }
@@ -363,7 +363,7 @@ public final class MediaServerRuntime {
     // -------------------------------------------------------------- streaming
 
     private void serveMedia(HttpRequest request, HttpResponse response, String path) throws IOException {
-        String objectId = objectIdFromPath(path);
+        String objectId = MediaPath.objectId(path);
         if (objectId == null) {
             response.status(404, "Not Found").body("Malformed media URL");
             return;
@@ -606,7 +606,7 @@ public final class MediaServerRuntime {
 
     private void serveThumbnail(HttpRequest request, HttpResponse response, String path)
             throws IOException {
-        String objectId = objectIdFromPath(path);
+        String objectId = MediaPath.objectId(path);
         if (!isTrusted(request)) {
             response.status(403, "Forbidden").body("Untrusted device");
             return;
@@ -643,20 +643,6 @@ public final class MediaServerRuntime {
         response.header("Content-Type", "image/jpeg");
         response.header("Content-Length", String.valueOf(jpeg.length));
         response.body(jpeg);
-    }
-
-    private static String objectIdFromPath(String path) {
-        String[] parts = path.split("/");
-        // "/media/<id>/<name>" and "/thumb/<id>.jpg" both end up with the id at index 2.
-        if (parts.length < 3 || parts[2].isEmpty()) {
-            return null;
-        }
-        String candidate = parts[2];
-        int dot = candidate.indexOf('.');
-        if (path.startsWith("/thumb/") && dot > 0) {
-            candidate = candidate.substring(0, dot);
-        }
-        return candidate.matches("[vpa]\\d+") ? candidate : null;
     }
 
     /**

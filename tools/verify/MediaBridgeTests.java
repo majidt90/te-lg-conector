@@ -15,6 +15,7 @@ import com.lgmediabridge.dlna.SsdpMessages;
 import com.lgmediabridge.net.HttpRange;
 import com.lgmediabridge.net.HttpRequest;
 import com.lgmediabridge.net.HttpResponse;
+import com.lgmediabridge.server.MediaPath;
 import com.lgmediabridge.stream.StreamSession;
 
 import java.io.ByteArrayInputStream;
@@ -64,6 +65,9 @@ public final class MediaBridgeTests {
         area("HTTP range and time-seek maths (whether seeking works)");
         byteRanges();
         timeSeekRanges();
+
+        area("Media URLs (what the TV is told to fetch)");
+        mediaUrls();
 
         area("DLNA tokens (what the TV inspects before playing)");
         dlnaProtocolInfo();
@@ -380,6 +384,69 @@ public final class MediaBridgeTests {
         long durationMs = 60_000L;
         long startBytes = 30_000L * totalBytes / durationMs;
         equal("time seek maps to the expected byte offset", 3_000_000L, startBytes);
+    }
+
+    // ------------------------------------------------------------ media URLs
+
+    private static void mediaUrls() {
+        MediaItem clip = video("Holiday Clip.mp4", "video/mp4", 1000, 1000);
+        String url = MediaPath.mediaUrl("http://192.168.1.42:8200", clip, "video/mp4");
+        equal("a video URL lives under /media/<id>/<name>.<ext>",
+                "http://192.168.1.42:8200/media/v42/Holiday%20Clip.mp4", url);
+        equal("the phone recognises the URL it handed out", "v42",
+                MediaPath.objectId("/media/v42/Holiday%20Clip.mp4"));
+        equal("a dotted file name does not confuse the id",
+                "v42", MediaPath.objectId("/media/v42/My.Holiday.Clip.mp4"));
+        equal("a converted photo is still the same object",
+                "p7", MediaPath.objectId("/media/p7/IMG_1.jpg"));
+        equal("audio ids are recognised too", "a3",
+                MediaPath.objectId("/media/a3/Song.mp3"));
+
+        // A JPEG copy of a HEIC keeps the object id, so ranges and resumes work.
+        MediaItem heic = new MediaItem.Builder().kind(MediaItem.Kind.PHOTO).storeId(7)
+                .displayName("IMG_1.heic").title("IMG_1").mimeType("image/heic")
+                .sizeBytes(4_000_000L).build();
+        String converted = MediaPath.mediaUrl("http://192.168.1.42:8200", heic,
+                "image/jpeg");
+        check("a converted photo is advertised as .jpg, not .heic",
+                converted.endsWith("/media/p7/IMG_1.jpg"));
+        // The cache serves the copy under the ORIGINAL id, so this must resolve.
+        equal("and the id still points at the original photo", "p7",
+                MediaPath.objectId("/media/p7/IMG_1.jpg"));
+
+        // Artwork.
+        equal("thumbnail URLs are read back", "v42", MediaPath.objectId("/thumb/v42.jpg"));
+        equal("thumbnail URLs without an extension are read back", "v42",
+                MediaPath.objectId("/thumb/v42"));
+        check("artwork is recognised as artwork",
+                MediaPath.isThumbnail("/thumb/v42.jpg") && !MediaPath.isMedia("/thumb/v42.jpg"));
+
+        // Anything else must not resolve to a catalogue entry.
+        equal("a browse container is not a media object", null,
+                MediaPath.objectId("/media/videos/x.mp4"));
+        equal("a missing id is rejected", null, MediaPath.objectId("/media//x.mp4"));
+        equal("a path with no id is rejected", null, MediaPath.objectId("/media/"));
+        equal("an upper-case id is rejected (ids are generated lower-case)", null,
+                MediaPath.objectId("/media/V42/x.mp4"));
+        equal("a non-media path is rejected", null,
+                MediaPath.objectId("/upnp/control/content-directory"));
+        equal("the device description is not a media object", null,
+                MediaPath.objectId(DeviceDescription.PATH_DEVICE));
+        equal("null is handled", null, MediaPath.objectId(null));
+        check("only /media/ and /thumb/ are media routes",
+                MediaPath.isMedia("/media/v1/a.mp4") && !MediaPath.isMedia("/mediax/v1/a.mp4")
+                        && !MediaPath.isMedia(null));
+
+        // Titles that need escaping must still produce a URL the phone can parse.
+        MediaItem awkward = new MediaItem.Builder().kind(MediaItem.Kind.VIDEO).storeId(88)
+                .displayName("A & B's Clip (final).mp4").title("A & B's Clip (final)")
+                .mimeType("video/mp4").sizeBytes(10).build();
+        String awkwardUrl = MediaPath.mediaUrl("http://10.0.0.2:8200", awkward, "video/mp4");
+        check("a title with spaces, quotes and ampersands is encoded: " + awkwardUrl,
+                !awkwardUrl.contains(" ") && awkwardUrl.contains("%20")
+                        && awkwardUrl.contains("%26"));
+        equal("and the encoded URL still resolves to its object",
+                "v88", MediaPath.objectId(awkwardUrl.substring("http://10.0.0.2:8200".length())));
     }
 
     // --------------------------------------------------------- DLNA protocol
