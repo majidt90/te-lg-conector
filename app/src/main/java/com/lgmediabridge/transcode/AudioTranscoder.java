@@ -39,6 +39,8 @@ public final class AudioTranscoder {
 
     private static final String TAG = "AudioTranscoder";
     private static final long DEQUEUE_TIMEOUT_US = 20_000;
+    /** How many 20 ms waits a decoder buffer may take to get an encoder input slot. */
+    private static final int ENCODER_WAIT_ATTEMPTS = 40;
     private static final long MAX_WALL_CLOCK_MS = 10 * 60 * 1000;
     /** Longest a conversion may run, published so stale scratch files can be aged out. */
     public static final long MAX_CONVERSION_MILLIS = MAX_WALL_CLOCK_MS;
@@ -206,14 +208,18 @@ public final class AudioTranscoder {
                         // samples: releasing the decoder buffer without queueing
                         // them would punch audible gaps into the converted track.
                         int encoderIndex = -1;
-                        for (int attempt = 0; attempt < 40 && encoderIndex < 0; attempt++) {
+                        for (int attempt = 0; attempt < ENCODER_WAIT_ATTEMPTS && encoderIndex < 0; attempt++) {
                             encoderIndex = encoder.dequeueInputBuffer(DEQUEUE_TIMEOUT_US);
-                            if (encoderIndex == MediaCodec.INFO_TRY_AGAIN_LATER
-                                    && outputDone) {
+                            if (encoderIndex == MediaCodec.INFO_TRY_AGAIN_LATER && outputDone) {
+                                // Draining: the encoder is finished accepting data, so
+                                // the tail of the stream is the price of not spinning
+                                // here forever. It is the last fraction of a second.
                                 break;
                             }
                         }
-                        if (encoderIndex < 0) {
+                        if (encoderIndex < 0 && !outputDone) {
+                            // Mid-stream this is not a slow encoder but a wedged one:
+                            // failing is better than silently shipping a broken track.
                             throw new IOException("the audio encoder stopped accepting data");
                         }
                         if (encoderIndex >= 0) {
