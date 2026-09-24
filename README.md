@@ -78,11 +78,11 @@ A ready-to-install build is committed in this repository:
 [`download/README.md`](download/README.md)). It is built from these sources by
 `tools/build.py`; the section below rebuilds it from scratch.
 
-Direct download (the working branch, and the same bytes pinned to the `v1.0.0`
-tag — see [release v1.0.0](https://github.com/majidt90/te-lg-conector/releases/tag/v1.0.0)):
+Direct download — or the same bytes pinned to the `v1.0.0` tag, which never moves
+(see [release v1.0.0](https://github.com/majidt90/te-lg-conector/releases/tag/v1.0.0)):
 
 ```
-https://raw.githubusercontent.com/majidt90/te-lg-conector/arena/01a0d429-te-lg-conector/download/MediaBridge-1.0.0.apk
+https://raw.githubusercontent.com/majidt90/te-lg-conector/main/download/MediaBridge-1.0.0.apk
 https://raw.githubusercontent.com/majidt90/te-lg-conector/v1.0.0/download/MediaBridge-1.0.0.apk
 ```
 
