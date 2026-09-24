@@ -20,11 +20,28 @@ public final class Xml {
                 case '"': sb.append("&quot;"); break;
                 case '\'': sb.append("&apos;"); break;
                 default:
-                    // Control characters are illegal in XML 1.0 even when escaped:
-                    // drop them so a weird file name cannot break the DIDL document.
-                    if (c >= 0x20 || c == '\n' || c == '\r' || c == '\t') {
-                        sb.append(c);
+                    // Control characters are illegal in XML 1.0 even when escaped,
+                    // and so are unpaired surrogates (a truncated emoji in a file
+                    // name). Dropping them keeps one odd media title from breaking
+                    // the whole browse response, which the TV would show as an
+                    // empty list.
+                    if (c < 0x20 && c != '\n' && c != '\r' && c != '\t') {
+                        break;
                     }
+                    if (c == 0xFFFE || c == 0xFFFF) {
+                        break;
+                    }
+                    if (Character.isHighSurrogate(c)) {
+                        if (i + 1 < value.length() && Character.isLowSurrogate(value.charAt(i + 1))) {
+                            sb.append(c).append(value.charAt(i + 1));
+                            i++;
+                        }
+                        break;
+                    }
+                    if (Character.isLowSurrogate(c)) {
+                        break;
+                    }
+                    sb.append(c);
             }
         }
         return sb.toString();
@@ -45,12 +62,37 @@ public final class Xml {
         return sb.toString();
     }
 
+    /**
+     * Index of the element whose name is exactly {@code name}.
+     *
+     * A plain {@code indexOf("<" + name)} also matches a longer element that
+     * merely starts with it - asking for {@code <Result>} would find
+     * {@code <ResultCode>} and return its digits plus the rest of the document.
+     * The character after the name must therefore end the name: {@code >},
+     * {@code /} (self-closing) or whitespace before attributes.
+     */
+    private static int findTag(String xml, String name) {
+        int from = 0;
+        while (true) {
+            int at = xml.indexOf("<" + name, from);
+            if (at < 0) {
+                return -1;
+            }
+            int after = at + 1 + name.length();
+            char next = after < xml.length() ? xml.charAt(after) : '>';
+            if (next == '>' || next == '/' || Character.isWhitespace(next)) {
+                return at;
+            }
+            from = at + 1;
+        }
+    }
+
     /** Extracts the text of the first {@code <name>…</name>} element. */
     public static String element(String xml, String name) {
         if (xml == null) {
             return null;
         }
-        int start = xml.indexOf("<" + name);
+        int start = findTag(xml, name);
         if (start < 0) {
             return null;
         }
@@ -70,7 +112,7 @@ public final class Xml {
         if (xml == null) {
             return null;
         }
-        int start = xml.indexOf("<" + elementName);
+        int start = findTag(xml, elementName);
         if (start < 0) {
             return null;
         }

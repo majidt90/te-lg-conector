@@ -67,6 +67,9 @@ public final class MediaBridgeTests {
         byteRanges();
         timeSeekRanges();
 
+        area("XML helpers (how phone and TV read each other)");
+        xmlHelpers();
+
         area("Media URLs (what the TV is told to fetch)");
         mediaUrls();
 
@@ -388,6 +391,73 @@ public final class MediaBridgeTests {
         long durationMs = 60_000L;
         long startBytes = 30_000L * totalBytes / durationMs;
         equal("time seek maps to the expected byte offset", 3_000_000L, startBytes);
+    }
+
+    // ----------------------------------------------------------- XML helpers
+
+    private static void xmlHelpers() {
+        // Everything the phone writes to the TV passes through escape().
+        equal("ampersand", "A &amp; B", Xml.escape("A & B"));
+        equal("angle brackets", "&lt;tag&gt;", Xml.escape("<tag>"));
+        equal("both quote styles", "&quot;x&quot; and &apos;y&apos;",
+                Xml.escape("\"x\" and 'y'"));
+        equal("nothing to escape", "Holiday Clip.mp4", Xml.escape("Holiday Clip.mp4"));
+        equal("a null title becomes an empty string", "", Xml.escape(null));
+        equal("tabs and newlines survive (they are legal in XML)",
+                "a\tb\nc", Xml.escape("a\tb\nc"));
+        equal("control characters are dropped, not escaped",
+                "BellRing", Xml.escape("Bell\u0007Ring"));
+        equal("a lone high surrogate is dropped (a truncated emoji)",
+                "Clip", Xml.escape("Clip\uD83D"));
+        equal("a lone low surrogate is dropped", "Clip", Xml.escape("Clip\uDE00"));
+        equal("a valid surrogate pair survives",
+                "Clip \uD83D\uDE00", Xml.escape("Clip \uD83D\uDE00"));
+
+        // The real test: whatever escape() produces must parse as XML.
+        String hostile = "A & B <\"quoted\"> \u0000\u0007 \uD83D P\uDE00'tab\t";
+        check("even a hostile title produces a parseable DIDL document",
+                parseXml(DidlLite.open() + DidlLite.container("1", "0", hostile,
+                        "object.container.storageFolder", 1, false) + DidlLite.close()) != null);
+
+        // Reading what the TV sends: entities come back as characters.
+        equal("entities are decoded", "A & B", Xml.unescape("A &amp; B"));
+        equal("double escaping is decoded once, not twice", "&lt;",
+                Xml.unescape("&amp;lt;"));
+        equal("numeric apostrophe is decoded", "'", Xml.unescape("&#39;"));
+        equal("text without entities is untouched", "plain", Xml.unescape("plain"));
+
+        // Element lookup must match a whole element name, not a prefix of one.
+        String soap = "<s:Envelope><s:Body><u:GetPositionInfoResponse>"
+                + "<ResultCode>0</ResultCode><Result>payload &amp; more</Result>"
+                + "</u:GetPositionInfoResponse></s:Body></s:Envelope>";
+        equal("an element's text is returned with entities decoded",
+                "payload & more", Xml.element(soap, "Result"));
+        equal("a longer element with the same prefix is not mistaken for it", null,
+                Xml.element("<body><ResultCode>0</ResultCode></body>", "Result"));
+        equal("a missing element yields null", null, Xml.element(soap, "TrackDuration"));
+        equal("null input yields null", null, Xml.element(null, "Result"));
+        equal("an element with attributes is still found", "body",
+                Xml.element("<res size=\"1\" duration=\"0:03:42\">body</res>", "res"));
+        equal("a longer element is not matched even when the shorter one is asked for",
+                null, Xml.element("<resource>no</resource>", "res"));
+        equal("a prefixed element is only found by its own name", "ok",
+                Xml.element("<u:Browse>ok</u:Browse>", "u:Browse"));
+        equal("attributes are read from a self-closing tag", "734003200",
+                Xml.attribute("<res protocolInfo=\"http-get:*:video/mp4:\" size=\"734003200\"/>",
+                        "res", "size"));
+        equal("an escaped attribute value is decoded", "a & b",
+                Xml.attribute("<res title=\"a &amp; b\"/>", "res", "title"));
+        equal("a missing attribute yields null", null,
+                Xml.attribute("<res size=\"1\"/>", "res", "duration"));
+        equal("a missing element yields null", null,
+                Xml.attribute("<other/>", "res", "size"));
+
+        equal("a plain number is parsed", 200, Xml.intOrDefault("200", 0));
+        equal("surrounding whitespace is tolerated", 7, Xml.intOrDefault("  7 ", 0));
+        equal("NOT_IMPLEMENTED falls back instead of throwing", -1,
+                Xml.intOrDefault("NOT_IMPLEMENTED", -1));
+        equal("an empty string falls back", 5, Xml.intOrDefault("", 5));
+        equal("null falls back", 5, Xml.intOrDefault(null, 5));
     }
 
     // ------------------------------------------------------------ media URLs
