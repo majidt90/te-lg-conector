@@ -216,6 +216,15 @@ Compatibility is decided per file, in three possible outcomes, and the app alway
    documented list. The TV never receives a URL that would fail mid-playback: the browse tree can
    hide these files (default) and the details sheet explains exactly which stream is the problem.
 
+**A container is not a codec.** Android's MediaStore reports the *container* MIME
+(`video/mp4`, `video/x-matroska`, `video/webm`, `video/mp2t`, `video/x-msvideo`) for
+ordinary phone videos; the codec MIME (`video/avc`, `video/hevc`) is only available
+by opening the file. A container MIME therefore means "codec unknown", and the file
+is offered rather than hidden — only a codec MIME can fail the codec list. Hiding a
+file on a guess would empty the television's library of the very videos it plays
+best, which is what the verification suite caught during development (see
+`docs/TESTING.md`).
+
 Video conversion is deliberately **not** implemented. Honest rationale:
 
 * A general H.264 re-encode (with the accompanying audio) is what BubbleUPnP Server does on a
