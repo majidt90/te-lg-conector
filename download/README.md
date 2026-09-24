@@ -14,10 +14,10 @@ in this repository. Android 8.0 (API 26) or newer.
 
 ## Install
 
-**From the phone's browser — direct link (works on the working branch):**
+**From the phone's browser — direct link:**
 
 ```
-https://raw.githubusercontent.com/majidt90/te-lg-conector/arena/01a0d429-te-lg-conector/download/MediaBridge-1.0.0.apk
+https://raw.githubusercontent.com/majidt90/te-lg-conector/main/download/MediaBridge-1.0.0.apk
 ```
 
 or pinned to the released version, which never moves:
@@ -30,9 +30,11 @@ Open the downloaded file from the notification or from Files, and allow
 installation from that source when Android asks.
 
 **From the repository page:** open [`download/MediaBridge-1.0.0.apk`](MediaBridge-1.0.0.apk)
-on the branch that carries it (the session branch above, or `main` once
-[PR #1](https://github.com/majidt90/te-lg-conector/pull/1) is merged) and use the
-*Download* button.
+and use the *Download* button. The file is on `main`, so it is there whether you
+browse the repository or clone it.
+
+**Confirmed on `main`:** blob `f09f39a9`, 279 060 bytes, SHA-256 as above, and
+`apksigner` reports the v2 and v3 schemes valid on the committed bytes.
 
 **From the release page:** [release v1.0.0](https://github.com/majidt90/te-lg-conector/releases/tag/v1.0.0)
 carries the whole project at this version as a source archive, with this APK inside
