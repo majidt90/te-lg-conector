@@ -24,6 +24,7 @@ import com.lgmediabridge.server.MediaServerRuntime;
 import com.lgmediabridge.server.ServerStatus;
 import com.lgmediabridge.settings.Settings;
 import com.lgmediabridge.transcode.AudioTranscoder;
+import com.lgmediabridge.transcode.TranscodeCache;
 import com.lgmediabridge.transcode.PhotoTranscoder;
 import com.lgmediabridge.ui.MainActivity;
 
@@ -54,7 +55,11 @@ public final class MediaServerService extends Service
 
     private static final String TAG = "ServerService";
     private static final String CHANNEL_ID = "sharing";
+    /** Ceiling for each on-disk conversion cache. */
+    private static final long CACHE_BUDGET_BYTES = TranscodeCache.DEFAULT_BUDGET_BYTES;
     public static final int NOTIFICATION_ID = 4711;
+    /** Failures before the status starts suggesting a different port. */
+    private static final int FAILURES_BEFORE_HINT = 3;
 
     public static final String ACTION_START = "com.lgmediabridge.action.START";
     public static final String ACTION_STOP = "com.lgmediabridge.action.STOP";
@@ -180,6 +185,10 @@ public final class MediaServerService extends Service
 
         startForegroundSafely();
         acquireLocks();
+        // A conversion interrupted by a crash or a low-memory kill leaves a .part
+        // file behind; sweeping the stale ones (never one still being written)
+        // keeps both caches honest.
+        sweepStaleConversions(app);
         ContentDirectory directory = app.contentDirectory();
         MediaCatalog catalog = app.catalog();
         PhotoTranscoder photos = app.photoTranscoder();
@@ -202,7 +211,17 @@ public final class MediaServerService extends Service
             String message = e.getMessage() == null ? e.toString() : e.getMessage();
             LogBus.get().e(TAG, "could not start sharing on port " + settings.port()
                     + ": " + message, e);
-            app.setServerStatus(ServerStatus.error(message));
+            // A port that stays busy is the one startup failure the user can fix
+            // themselves, so after a few attempts the status says which port and
+            // where to change it instead of repeating a socket error.
+            if (consecutiveFailures >= FAILURES_BEFORE_HINT) {
+                LogBus.get().w(TAG, "still cannot bind port " + settings.port()
+                        + " after " + consecutiveFailures + " attempts");
+                app.setServerStatus(ServerStatus.error(getString(
+                        R.string.error_port_bind, settings.port())));
+            } else {
+                app.setServerStatus(ServerStatus.error(message));
+            }
             if (runtime != null) {
                 runtime.setLastError(message);
                 runtime.stop();
@@ -240,6 +259,20 @@ public final class MediaServerService extends Service
         }
         publishStatus();
         LogBus.get().i(TAG, "sharing stopped");
+    }
+
+    /**
+     * Deletes half-written conversions older than any conversion can legitimately
+     * take, so a crashed run cannot leave dead bytes behind while a request the
+     * television is waiting on keeps its scratch file.
+     */
+    private void sweepStaleConversions(App app) {
+        long staleAfter = AudioTranscoder.MAX_CONVERSION_MILLIS * 2;
+        int removed = app.photoTranscoder().clearStaleParts(staleAfter)
+                + app.audioTranscoder().clearStaleParts(staleAfter);
+        if (removed > 0) {
+            LogBus.get().i(TAG, "removed " + removed + " unfinished conversion file(s)");
+        }
     }
 
     private void acquireLocks() {
@@ -332,7 +365,10 @@ public final class MediaServerService extends Service
             } else if (System.currentTimeMillis() - lastStatusNotificationAt > 60_000) {
                 updateNotification();
             }
-            app.photoTranscoder().trimCache(96L * 1024 * 1024);
+            // Both caches are bounded: a library of converted Opus/DTS tracks
+            // would otherwise grow until the user noticed it in storage settings.
+            app.photoTranscoder().trimCache(CACHE_BUDGET_BYTES);
+            app.audioTranscoder().trimCache(CACHE_BUDGET_BYTES);
             LocalNetwork.State state = LocalNetwork.state(this);
             if (state.ipAddress != null && !state.ipAddress.equals(currentAddress)) {
                 LogBus.get().w(TAG, "local address changed to " + state.ipAddress);

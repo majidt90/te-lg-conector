@@ -33,11 +33,11 @@ public final class PhotoTranscoder {
     private static final int JPEG_QUALITY = 88;
 
     private final Context context;
-    private final File cacheDir;
+    private final TranscodeCache cache;
 
     public PhotoTranscoder(Context context) {
         this.context = context.getApplicationContext();
-        this.cacheDir = new File(this.context.getCacheDir(), "photos");
+        this.cache = new TranscodeCache(this.context.getCacheDir(), "photos");
     }
 
     public static final class Result {
@@ -55,49 +55,58 @@ public final class PhotoTranscoder {
 
     /** Returns a cached or freshly produced JPEG for {@code item}. */
     public Result ensure(MediaItem item, int maxDimension, boolean allowConversion) throws IOException {
-        File target = cacheFile(item, maxDimension);
-        if (target.exists() && target.length() > 0) {
+        String key = cacheKey(item, maxDimension);
+        File target = cache.target(key);
+        // A zero-byte file is a failure, not a cache hit: it would be served as
+        // an empty response and the TV would show a broken image.
+        if (TranscodeCache.isUsable(target)) {
             return new Result(target, true);
         }
         if (!allowConversion) {
             throw new IOException("conversion disabled");
         }
-        if (!cacheDir.exists() && !cacheDir.mkdirs()) {
-            throw new IOException("cannot create photo cache");
-        }
+        cache.prepare();
         long startedAt = System.currentTimeMillis();
-        Bitmap bitmap = decode(item, maxDimension);
-        if (bitmap == null) {
-            throw new IOException("this phone cannot decode the image format ("
-                    + item.mimeType + ")");
-        }
-        Bitmap rotated = applyOrientation(item, bitmap);
-        File temp = new File(cacheDir, target.getName() + ".part");
-        try (FileOutputStream out = new FileOutputStream(temp)) {
-            if (!rotated.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)) {
-                throw new IOException("JPEG encoding failed");
+        // A unique name per attempt: two requests for the same photo cannot
+        // interleave into one file and hand the TV a corrupt JPEG.
+        File temp = cache.newPart(key);
+        try {
+            Bitmap bitmap = decode(item, maxDimension);
+            if (bitmap == null) {
+                throw new IOException("this phone cannot decode the image format ("
+                        + item.mimeType + ")");
             }
-        } finally {
-            if (rotated != bitmap) {
-                rotated.recycle();
+            Bitmap rotated = applyOrientation(item, bitmap);
+            try (FileOutputStream out = new FileOutputStream(temp)) {
+                if (!rotated.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)) {
+                    throw new IOException("JPEG encoding failed");
+                }
+            } finally {
+                if (rotated != bitmap) {
+                    rotated.recycle();
+                }
+                bitmap.recycle();
             }
-            bitmap.recycle();
-        }
-        if (!temp.renameTo(target)) {
-            // Another request may have produced the same file concurrently.
-            if (!target.exists()) {
-                temp.delete();
-                throw new IOException("could not store converted photo");
-            }
+            File stored = cache.publish(temp, key);
+            LogBus.get().i(TAG, "converted " + item.displayName + " → " + stored.getName()
+                    + " (" + stored.length() + " bytes, "
+                    + (System.currentTimeMillis() - startedAt) + " ms)");
+            return new Result(stored, true);
+        } catch (IOException e) {
             temp.delete();
+            throw e;
+        } catch (RuntimeException e) {
+            temp.delete();
+            throw e;
         }
-        LogBus.get().i(TAG, "converted " + item.displayName + " → " + target.getName()
-                + " (" + target.length() + " bytes, " + (System.currentTimeMillis() - startedAt) + " ms)");
-        return new Result(target, true);
     }
 
     public File cacheFile(MediaItem item, int maxDimension) {
-        return new File(cacheDir, item.objectId() + "_" + item.sizeBytes + "_" + maxDimension + ".jpg");
+        return cache.target(cacheKey(item, maxDimension));
+    }
+
+    private static String cacheKey(MediaItem item, int maxDimension) {
+        return item.objectId() + "_" + item.sizeBytes + "_" + maxDimension + ".jpg";
     }
 
     private Bitmap decode(MediaItem item, int maxDimension) {
@@ -211,55 +220,20 @@ public final class PhotoTranscoder {
     }
 
     public long cacheSize() {
-        return directorySize(cacheDir);
+        return cache.size();
     }
 
     public void clearCache() {
-        deleteContents(cacheDir);
+        cache.clear();
     }
 
     /** Removes old conversions so the cache cannot grow without bound. */
     public void trimCache(long maxBytes) {
-        if (directorySize(cacheDir) <= maxBytes) {
-            return;
-        }
-        File[] files = cacheDir.listFiles();
-        if (files == null) {
-            return;
-        }
-        java.util.Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
-        long size = directorySize(cacheDir);
-        for (File file : files) {
-            if (size <= maxBytes) {
-                break;
-            }
-            size -= file.length();
-            file.delete();
-        }
+        cache.trim(maxBytes);
     }
 
-    static long directorySize(File directory) {
-        File[] files = directory.listFiles();
-        if (files == null) {
-            return 0;
-        }
-        long total = 0;
-        for (File file : files) {
-            total += file.isDirectory() ? directorySize(file) : file.length();
-        }
-        return total;
-    }
-
-    static void deleteContents(File directory) {
-        File[] files = directory.listFiles();
-        if (files == null) {
-            return;
-        }
-        for (File file : files) {
-            if (file.isDirectory()) {
-                deleteContents(file);
-            }
-            file.delete();
-        }
+    /** Removes half-written conversions left behind by an interrupted run. */
+    public int clearStaleParts(long olderThanMillis) {
+        return cache.clearStaleParts(olderThanMillis);
     }
 }

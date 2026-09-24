@@ -12,6 +12,7 @@ import android.widget.TextView;
 import com.lgmediabridge.App;
 import com.lgmediabridge.R;
 import com.lgmediabridge.core.Formats;
+import com.lgmediabridge.transcode.TranscodeCache;
 import com.lgmediabridge.settings.Settings;
 
 
@@ -131,8 +132,11 @@ public final class SettingsView {
                     Ui.toast(activity, activity.getString(R.string.settings_cache_cleared));
                     refresh();
                 }));
+        // Two caches share one budget each, so the retention row shows the
+        // ceiling for both rather than a single 96 MB that is really per cache.
         containerStorage.addView(actionRow(R.string.settings_cache_limit,
-                Formats.bytes(96L * 1024 * 1024), R.string.settings_cache_limit_desc, null));
+                Formats.bytes(2 * TranscodeCache.DEFAULT_BUDGET_BYTES),
+                R.string.settings_cache_limit_desc, null));
 
         // --- about --------------------------------------------------------
         containerAbout.addView(infoRow(R.string.settings_version, versionName(),

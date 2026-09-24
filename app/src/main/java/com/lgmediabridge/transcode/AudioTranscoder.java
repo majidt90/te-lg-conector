@@ -40,6 +40,8 @@ public final class AudioTranscoder {
     private static final String TAG = "AudioTranscoder";
     private static final long DEQUEUE_TIMEOUT_US = 20_000;
     private static final long MAX_WALL_CLOCK_MS = 10 * 60 * 1000;
+    /** Longest a conversion may run, published so stale scratch files can be aged out. */
+    public static final long MAX_CONVERSION_MILLIS = MAX_WALL_CLOCK_MS;
     private static final int TARGET_BITRATE = 192_000;
     private static final int MAX_ENCODER_SAMPLE_RATE = 48_000;
 
@@ -48,21 +50,29 @@ public final class AudioTranscoder {
     }
 
     private final Context context;
-    private final File cacheDir;
+    private final TranscodeCache cache;
+    /**
+     * One lock per item, kept for the life of the process.
+     *
+     * It is deliberately not removed after a conversion: a request that arrived
+     * while the first was running waits on this object, and dropping it would let
+     * a third request start a *second* conversion of the same track - two writers
+     * racing over one cache file, which is how a corrupt file gets cached. The map
+     * holds one tiny object per converted track, bounded by the library.
+     */
     private final Map<String, Object> locks = new ConcurrentHashMap<>();
 
     public AudioTranscoder(Context context) {
         this.context = context.getApplicationContext();
-        this.cacheDir = new File(this.context.getCacheDir(), "audio");
+        this.cache = new TranscodeCache(this.context.getCacheDir(), "audio");
     }
 
     public File cacheFile(MediaItem item) {
-        return new File(cacheDir, item.objectId() + "_" + item.sizeBytes + ".m4a");
+        return cache.target(item.objectId() + "_" + item.sizeBytes + ".m4a");
     }
 
     public boolean isCached(MediaItem item) {
-        File file = cacheFile(item);
-        return file.exists() && file.length() > 0;
+        return TranscodeCache.isUsable(cacheFile(item));
     }
 
     /**
@@ -71,32 +81,33 @@ public final class AudioTranscoder {
      * @return the MP4/AAC file, ready to be served with byte-range support.
      */
     public File ensureConverted(MediaItem item, Progress progress) throws IOException {
-        File target = cacheFile(item);
-        if (target.exists() && target.length() > 0) {
+        String key = cacheKey(item);
+        File target = cache.target(key);
+        if (TranscodeCache.isUsable(target)) {
             return target;
         }
-        Object lock = locks.computeIfAbsent(item.objectId(), key -> new Object());
+        Object lock = locks.computeIfAbsent(item.objectId(), k -> new Object());
         synchronized (lock) {
-            if (target.exists() && target.length() > 0) {
+            if (TranscodeCache.isUsable(target)) {
                 return target;
             }
-            if (!cacheDir.exists() && !cacheDir.mkdirs()) {
-                throw new IOException("cannot create audio cache directory");
-            }
-            File temp = new File(cacheDir, target.getName() + ".part");
+            cache.prepare();
+            File temp = cache.newPart(key);
             try {
                 transcode(item, temp, progress);
-                if (!temp.renameTo(target) && !target.exists()) {
-                    throw new IOException("could not store converted audio");
-                }
-                return target;
+                return cache.publish(temp, key);
             } catch (IOException e) {
                 temp.delete();
                 throw e;
-            } finally {
-                locks.remove(item.objectId());
+            } catch (RuntimeException e) {
+                temp.delete();
+                throw e;
             }
         }
+    }
+
+    private static String cacheKey(MediaItem item) {
+        return item.objectId() + "_" + item.sizeBytes + ".m4a";
     }
 
     private void transcode(MediaItem item, File output, Progress progress) throws IOException {
@@ -191,7 +202,20 @@ public final class AudioTranscoder {
                     if (pcm != null && info.size > 0 && !config) {
                         pcm.position(info.offset);
                         pcm.limit(info.offset + info.size);
-                        int encoderIndex = encoder.dequeueInputBuffer(DEQUEUE_TIMEOUT_US * 5);
+                        // Wait for an encoder input buffer instead of dropping the
+                        // samples: releasing the decoder buffer without queueing
+                        // them would punch audible gaps into the converted track.
+                        int encoderIndex = -1;
+                        for (int attempt = 0; attempt < 40 && encoderIndex < 0; attempt++) {
+                            encoderIndex = encoder.dequeueInputBuffer(DEQUEUE_TIMEOUT_US);
+                            if (encoderIndex == MediaCodec.INFO_TRY_AGAIN_LATER
+                                    && outputDone) {
+                                break;
+                            }
+                        }
+                        if (encoderIndex < 0) {
+                            throw new IOException("the audio encoder stopped accepting data");
+                        }
                         if (encoderIndex >= 0) {
                             ByteBuffer encoderBuffer = encoder.getInputBuffer(encoderIndex);
                             if (encoderBuffer != null) {
@@ -300,10 +324,26 @@ public final class AudioTranscoder {
     }
 
     public long cacheSize() {
-        return PhotoTranscoder.directorySize(cacheDir);
+        return cache.size();
     }
 
     public void clearCache() {
-        PhotoTranscoder.deleteContents(cacheDir);
+        cache.clear();
+    }
+
+    /**
+     * Keeps the converted-audio cache inside a budget.
+     *
+     * Without this the cache only ever grows: the photo cache was trimmed by the
+     * service's housekeeping but converted tracks were not, so a library of Opus
+     * or DTS files could quietly consume the user's storage.
+     */
+    public void trimCache(long maxBytes) {
+        cache.trim(maxBytes);
+    }
+
+    /** Removes half-written conversions left behind by an interrupted run. */
+    public int clearStaleParts(long olderThanMillis) {
+        return cache.clearStaleParts(olderThanMillis);
     }
 }

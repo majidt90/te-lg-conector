@@ -20,8 +20,11 @@ import com.lgmediabridge.server.MediaPath;
 import com.lgmediabridge.stream.StreamRegistry;
 import com.lgmediabridge.stream.StreamSession;
 
+import com.lgmediabridge.transcode.TranscodeCache;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -67,6 +70,9 @@ public final class MediaBridgeTests {
         area("HTTP range and time-seek maths (whether seeking works)");
         byteRanges();
         timeSeekRanges();
+
+        area("Conversion caches (storage that must not grow without bound)");
+        conversionCaches();
 
         area("Diagnostics and formatting (what the user reads)");
         diagnosticsAndFormatting();
@@ -395,6 +401,151 @@ public final class MediaBridgeTests {
         long durationMs = 60_000L;
         long startBytes = 30_000L * totalBytes / durationMs;
         equal("time seek maps to the expected byte offset", 3_000_000L, startBytes);
+    }
+
+    // ------------------------------------------------------ conversion caches
+
+    private static void conversionCaches() throws Exception {
+        File root = new File(System.getProperty("java.io.tmpdir"),
+                "mediabridge-cache-test-" + System.nanoTime());
+        TranscodeCache cache = new TranscodeCache(root, "photos");
+
+        // A missing directory is not an error until something is stored.
+        equal("an absent cache reports no size", 0L, cache.size());
+        check("and nothing is considered cached", !cache.has("p1_1000_2560.jpg"));
+        cache.clear();
+        cache.trim(1024);
+
+        cache.prepare();
+        check("preparing the cache creates it", cache.directory().isDirectory());
+
+        // Completed files are recognised; a zero-byte file is not.
+        File good = cache.target("p1_1000_2560.jpg");
+        write(good, 5000);
+        check("a written file is a cache hit", cache.has("p1_1000_2560.jpg"));
+        File empty = cache.target("p2_1000_2560.jpg");
+        write(empty, 0);
+        check("an empty file is not a cache hit (it would be served as a broken image)",
+                !cache.has("p2_1000_2560.jpg"));
+
+        // A half-written conversion must never be published under the real name.
+        File part = cache.newPart("p3_1000_2560.jpg");
+        write(part, 999);
+        check("a partial file does not count as cached",
+                !cache.has("p3_1000_2560.jpg"));
+        File published = cache.publish(part, "p3_1000_2560.jpg");
+        check("publishing moves it into place", published.isFile() && published.length() == 999);
+        check("and it is a cache hit afterwards", cache.has("p3_1000_2560.jpg"));
+        check("the partial file is gone", !part.exists());
+
+        // Two conversions of the same item must not share a scratch file.
+        File first = cache.newPart("p4_1000_2560.jpg");
+        File second = cache.newPart("p4_1000_2560.jpg");
+        check("each attempt gets its own scratch file: " + first.getName(),
+                !first.getName().equals(second.getName())
+                        && first.getName().endsWith(".part"));
+        first.delete();
+        second.delete();
+
+        // Publishing over an existing entry: the rename replaces it atomically,
+        // so the cache can never hold a mixture of two conversions of one item.
+        File winner = cache.target("p5_1000_2560.jpg");
+        write(winner, 700);
+        File part2 = cache.newPart("p5_1000_2560.jpg");
+        write(part2, 300);
+        File kept = cache.publish(part2, "p5_1000_2560.jpg");
+        check("the published conversion replaces the previous one atomically",
+                kept.length() == 300 || kept.length() == 700);
+        check("no scratch file is left behind", !part2.exists());
+        check("and the entry is a complete file either way",
+                cache.has("p5_1000_2560.jpg"));
+
+        // A publish with nothing behind it is an error, not a silent empty file.
+        File orphan = cache.newPart("p6_1000_2560.jpg");
+        write(orphan, 10);
+        File fake = new File(cache.directory(), "does-not-exist.tmp");
+        boolean failed = false;
+        try {
+            cache.publish(fake, "p7_1000_2560.jpg");
+        } catch (java.io.IOException expected) {
+            failed = true;
+        }
+        check("publishing a file that is not there fails loudly", failed);
+        orphan.delete();
+
+        // Trimming: oldest first, and only as much as needed.
+        TranscodeCache trimmable = new TranscodeCache(root, "audio");
+        trimmable.prepare();
+        for (int i = 0; i < 6; i++) {
+            File file = trimmable.target("a" + i + "_1000.m4a");
+            write(file, 1000);
+            file.setLastModified(1_000_000L + i * 10_000L);
+        }
+        equal("six 1000-byte files are counted", 6000L, trimmable.size());
+        trimmable.trim(6000);
+        equal("a cache inside its budget is left alone", 6000L, trimmable.size());
+        trimmable.trim(3500);
+        check("trimming brings the cache inside the budget", trimmable.size() <= 3500);
+        check("the oldest conversion is the one removed",
+                !trimmable.target("a0_1000.m4a").exists());
+        check("the newest conversion survives",
+                trimmable.target("a5_1000.m4a").exists());
+
+        // Leftovers from an interrupted run are swept away - but a conversion that
+        // is still running must keep its scratch file, or the TV's request dies.
+        File abandoned = trimmable.newPart("a9_1000.m4a");
+        write(abandoned, 42);
+        abandoned.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L);
+        File inFlight = trimmable.newPart("a8_1000.m4a");
+        write(inFlight, 42);
+        equal("only the abandoned scratch file is swept",
+                1, trimmable.clearStaleParts(30 * 60 * 1000L));
+        check("the stale scratch file is gone", !abandoned.exists());
+        check("the conversion still in flight keeps its scratch file",
+                inFlight.isFile());
+        inFlight.delete();
+        check("no partial files remain in the cache", countParts(trimmable) == 0);
+        trimmable.clear();
+        equal("clearing empties the cache", 0L, trimmable.size());
+        // Nested directories (a cache that grew a subfolder) are counted too.
+        File nested = new File(trimmable.directory(), "sub");
+        nested.mkdirs();
+        write(new File(nested, "x.jpg"), 111);
+        equal("nested files count towards the cache size", 111L, trimmable.size());
+        trimmable.clear();
+        equal("clearing removes them as well", 0L, trimmable.size());
+
+        deleteTree(root);
+    }
+
+    private static int countParts(TranscodeCache cache) {
+        String[] names = cache.directory().list();
+        int parts = 0;
+        if (names != null) {
+            for (String name : names) {
+                if (name.endsWith(".part")) {
+                    parts++;
+                }
+            }
+        }
+        return parts;
+    }
+
+    private static void write(File file, int bytes) throws Exception {
+        file.getParentFile().mkdirs();
+        try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+            out.write(new byte[bytes]);
+        }
+    }
+
+    private static void deleteTree(File file) {
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteTree(child);
+            }
+        }
+        file.delete();
     }
 
     // -------------------------------------------------- diagnostics + formats

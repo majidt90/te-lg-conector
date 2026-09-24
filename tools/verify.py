@@ -63,6 +63,7 @@ SOURCES = [
     "control/TvDevice.java",
     "control/SoapClient.java",
     "server/MediaPath.java",
+    "transcode/TranscodeCache.java",
     "stream/StreamSession.java",
     "stream/StreamRegistry.java",
 ]

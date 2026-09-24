@@ -74,10 +74,18 @@ lifecycle, **U** = UI.
 
 ## What is verified without a device
 
-`python3 tools/verify.py` runs a 429-assertion JVM suite over the protocol layer
+`python3 tools/verify.py` runs a 455-assertion JVM suite over the protocol layer
 (the exact XML between phone and TV, the DLNA tokens, the range/time-seek maths,
 the media URL scheme, the codec decision tables, and a live HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
+The on-disk conversion caches are
+covered as well, because a bug there is invisible until it bites: a half-written
+conversion must never appear under a finished file's name, a zero-byte file is a
+failure rather than a cache hit, two requests for the same item must not share a
+scratch file, a sweep of unfinished conversions must never touch one that is still
+running, and trimming must remove the least recently used conversions first and
+keep the cache inside its budget.
+
 Diagnostics and formatting are covered too: the log keeps its newest 600 entries
 under load, reports how many older ones it discarded (so "the app missed the
 moment it failed" is visible rather than guessed at), the export reads oldest
@@ -90,7 +98,7 @@ followed by the rest of the document, and a file name containing an unpaired
 surrogate (a truncated emoji) or a control byte could make a whole DIDL page
 unparseable - which the TV shows as an empty list. Both are now covered.
 
-It has found seven real defects so far, two of them severity-1, plus a size-honesty
+It has found ten real defects so far, two of them severity-1, plus a size-honesty
 problem: a converted photo or audio track was listed and counted under the
 *original* file's size, so the progress bar could never reach 100% and the session
 list showed bytes that were never transferred (a converted resource now reports
@@ -109,6 +117,20 @@ its own length, and an unknown one shows what has actually been sent):
   ends.
 * **Ogg Vorbis was refused** although webOS documents it as playable, because the
   documented list had `audio/vorbis` but MediaStore reports `audio/ogg`.
+* **converted audio could fill the phone.** The service bounded the *photo* cache
+  but converted tracks (Opus, DTS, ALAC…) had no trimming path at all, so that
+  cache only ever grew. Both now use one implementation and one 96 MB budget.
+* **converted audio could have audible gaps.** When the AAC encoder briefly had no
+  free input buffer, the decoder's PCM buffer was released anyway and those samples
+  were lost - a track could stutter where the phone was busy. The loop now waits for
+  the encoder, and fails the conversion loudly rather than shipping a mangled file.
+* **two conversions of the same item could publish a corrupt file.** Every attempt
+  wrote the same `<target>.part` and the per-item lock was released and forgotten
+  between requests, so a second request could write into the same scratch file and
+  win the rename with interleaved bytes - and, because the result is cached, the
+  broken photo or track stayed broken. Scratch names are now unique per attempt,
+  the lock is kept for the process lifetime, and publishing either produces a
+  complete file or throws.
 * the client label showed the percent-encoded DLNA device name (`%5bLG%5dwebOS1-TV`)
   instead of the TV model, and was never decoded;
 * a multi-range request (`bytes=0-99,200-299`) was answered with a single part

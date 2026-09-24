@@ -447,7 +447,7 @@
     <string name="settings_clear_cache_desc">Deletes cached conversions. They are rebuilt automatically when needed.</string>
     <string name="settings_cache_cleared">Cache cleared</string>
     <string name="settings_cache_limit">Retention</string>
-    <string name="settings_cache_limit_desc">Cached conversions are trimmed automatically to keep storage in check.</string>
+    <string name="settings_cache_limit_desc">Photos and converted audio are trimmed automatically to stay inside this limit.</string>
     <string name="settings_version_desc">MediaBridge version installed on this phone.</string>
     <string name="settings_device_desc">The phone acting as the media server.</string>
     <string name="settings_uuid">Device UUID</string>
