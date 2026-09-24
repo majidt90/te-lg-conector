@@ -68,6 +68,14 @@ If the TV does not list the phone, the diagnostics screen and the in-app hint an
 causes: guest network / client isolation, multicast filtering by the router, phone on a VPN, or the
 TV being on a different band or VLAN.
 
+## Download
+
+A ready-to-install build is committed in this repository:
+**[`download/MediaBridge-1.0.0.apk`](download/MediaBridge-1.0.0.apk)**
+(273 KiB, Android 8.0+, signed v2+v3 — SHA-256 and install steps in
+[`download/README.md`](download/README.md)). It is built from these sources by
+`tools/build.py`; the section below rebuilds it from scratch.
+
 ## Building
 
 ### Android Studio / Gradle (normal development)
