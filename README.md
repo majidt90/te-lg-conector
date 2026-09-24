@@ -40,7 +40,9 @@ Phone                                                     LG TV
 
 ## Install
 
-A signed, installable build is produced by the build pipeline:
+Either take the committed build — **[`download/MediaBridge-1.0.0.apk`](download/MediaBridge-1.0.0.apk)**
+(`download/README.md` has the checksum and phone/adb install steps) — or produce one
+yourself with the build pipeline:
 
 ```bash
 ls dist/MediaBridge-debug.apk          # shipped debug build (APK Signature Scheme v2 + v3)
