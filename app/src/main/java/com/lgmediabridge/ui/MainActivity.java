@@ -318,8 +318,17 @@ public final class MainActivity extends android.app.Activity
     @Override public void onStatusChanged(ServerStatus status) {
         runOnUiThread(() -> {
             homeView.bindServerStatus(status);
-            subtitle.setText(status.describe() + (status.isRunning()
-                    ? " · " + getString(R.string.home_clients, status.requestsServed) : ""));
+            if (status.isRunning()) {
+                subtitle.setText(getString(R.string.home_server_running) + " · "
+                        + status.hostPort() + " · "
+                        + getString(R.string.home_clients, status.requestsServed));
+            } else if (status.state == ServerStatus.State.STARTING) {
+                subtitle.setText(R.string.state_loading);
+            } else if (status.state == ServerStatus.State.ERROR && status.error != null) {
+                subtitle.setText(status.error);
+            } else {
+                subtitle.setText(R.string.home_server_stopped);
+            }
             int color;
             if (status.isRunning()) {
                 color = R.color.success;
@@ -344,7 +353,9 @@ public final class MainActivity extends android.app.Activity
             if (sessions != null && !sessions.isEmpty()) {
                 subtitle.setText(getString(R.string.sessions_active, sessions.size()));
             } else {
-                subtitle.setText(App.get().serverStatus().describe());
+                ServerStatus idle = App.get().serverStatus();
+                subtitle.setText(idle.isRunning() ? R.string.home_server_running
+                        : R.string.home_server_stopped);
             }
         });
     }

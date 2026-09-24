@@ -2,6 +2,8 @@ package com.lgmediabridge.core;
 
 import android.content.Context;
 
+import com.lgmediabridge.R;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -97,21 +99,31 @@ public final class Formats {
         return hours + " h " + remMinutes + " min";
     }
 
+    /**
+     * Relative time, in the user's language resources rather than in code.
+     *
+     * {@code context} is used for the wording; without one (a log line, for
+     * example) a neutral placeholder is returned instead of guessing.
+     */
     public static String timeAgo(Context context, long timestamp) {
+        Context resources = context == null ? null : context.getApplicationContext();
         if (timestamp <= 0) {
-            return "never";
+            return resources == null ? "—" : resources.getString(R.string.time_never);
         }
         long delta = System.currentTimeMillis() - timestamp;
+        if (resources == null) {
+            return elapsed(delta);
+        }
         if (delta < 45_000) {
-            return "just now";
+            return resources.getString(R.string.time_just_now);
         }
         if (delta < 3_600_000) {
-            return (delta / 60_000) + " min ago";
+            return resources.getString(R.string.time_minutes_ago, delta / 60_000);
         }
         if (delta < 86_400_000) {
-            return (delta / 3_600_000) + " h ago";
+            return resources.getString(R.string.time_hours_ago, delta / 3_600_000);
         }
-        return (delta / 86_400_000) + " d ago";
+        return resources.getString(R.string.time_days_ago, delta / 86_400_000);
     }
 
     /** Wall-clock time of a log entry, in the phone's own time zone. */

@@ -470,4 +470,5 @@
     <string name="settings_start_boot">Start sharing on boot</string>
     <string name="settings_convert_photos">Convert unsupported photos</string>
     <string name="settings_device">This phone</string>
+    <string name="time_never">never</string>
 </resources>
