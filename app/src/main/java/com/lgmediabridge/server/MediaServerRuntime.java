@@ -401,6 +401,16 @@ public final class MediaServerRuntime {
                 item.objectId(), item.title, mime, item.sizeBytes, converted);
         session.setState(converted ? "converting" : "streaming");
 
+        if (result.verdict == CompatResult.Verdict.PHOTO_CONVERT && !settings.photoConvert()) {
+            LogBus.get().w(TAG, "refused " + item.displayName()
+                    + ": photo conversion is switched off");
+            response.status(415, "Unsupported Media Type")
+                    .header("Content-Type", "text/plain; charset=utf-8")
+                    .body("Photo conversion is turned off in MediaBridge settings.");
+            streams.finish(session, 415);
+            return;
+        }
+
         try {
             if (result.verdict == CompatResult.Verdict.PHOTO_CONVERT) {
                 int maxDimension = PhotoTranscoder.TV_MAX_DIMENSION;
