@@ -1,5 +1,6 @@
 import com.lgmediabridge.catalog.MediaItem;
 import com.lgmediabridge.compat.CompatResult;
+import com.lgmediabridge.compat.MediaCompat;
 import com.lgmediabridge.control.SoapClient;
 import com.lgmediabridge.control.TvDevice;
 import com.lgmediabridge.core.Json;
@@ -71,6 +72,12 @@ public final class MediaBridgeTests {
         area("DIDL-Lite browse results (what the TV lists)");
         didlItemsAndContainers();
 
+        area("LG device classification (which TV to offer)");
+        tvClassification();
+
+        area("Media compatibility decisions (what the TV is offered)");
+        mediaCompatibility();
+
         area("UPnP device and service descriptions");
         deviceDescription();
         scpds();
@@ -89,6 +96,8 @@ public final class MediaBridgeTests {
 
         area("Live HTTP exchange on the loopback socket");
         liveHttpExchange();
+        headAndKeepAlive();
+        segmentedRequests();
 
         System.out.println();
         int total = passed + failures.size();
@@ -524,6 +533,268 @@ public final class MediaBridgeTests {
         check("track number is exposed", audio.contains("<upnp:originalTrackNumber>4"));
     }
 
+    // ------------------------------------------------------- media compatibility
+
+    /** Builds a catalogue item the way the MediaStore index does. */
+    private static MediaItem item(MediaItem.Kind kind, String name, String mime, int width,
+                                  int height) {
+        return new MediaItem.Builder()
+                .kind(kind)
+                .storeId(Math.abs(name.hashCode()))
+                .displayName(name)
+                .title(name)
+                .mimeType(mime)
+                .sizeBytes(120_000_000L)
+                .durationMs(kind == MediaItem.Kind.PHOTO ? 0 : 120_000L)
+                .size(width, height)
+                .build();
+    }
+
+    private static void verdictIs(String name, MediaItem.Kind kind, String fileName, String mime,
+                                  CompatResult.Verdict expected) {
+        MediaItem media = item(kind, fileName, mime, 1920, 1080);
+        CompatResult.Verdict actual = new MediaCompat().quick(media).verdict;
+        equal(name, expected, actual);
+    }
+
+    private static void mediaCompatibility() {
+        // MediaStore reports the *container* for ordinary phone videos. Judging
+        // that as an unknown codec would hide the whole video library from the
+        // television, which is the one thing this app must never do.
+        verdictIs("MP4/H.264 video is offered", MediaItem.Kind.VIDEO, "Clip.mp4", "video/mp4",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("QuickTime video is offered", MediaItem.Kind.VIDEO, "Clip.mov",
+                "video/quicktime", CompatResult.Verdict.DIRECT);
+        verdictIs("Matroska video is offered", MediaItem.Kind.VIDEO, "Clip.mkv",
+                "video/x-matroska", CompatResult.Verdict.DIRECT);
+        verdictIs("WebM video is offered", MediaItem.Kind.VIDEO, "Clip.webm", "video/webm",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("MPEG-TS video is offered", MediaItem.Kind.VIDEO, "Recording.ts",
+                "video/mp2t", CompatResult.Verdict.DIRECT);
+        verdictIs("AVI video is offered", MediaItem.Kind.VIDEO, "Old.avi",
+                "video/x-msvideo", CompatResult.Verdict.DIRECT);
+        verdictIs("AVI reported under its alias MIME is offered too", MediaItem.Kind.VIDEO,
+                "Old.avi", "video/avi", CompatResult.Verdict.DIRECT);
+        verdictIs("3GP video is offered", MediaItem.Kind.VIDEO, "Mms.3gp", "video/3gpp",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("MPEG program stream is offered", MediaItem.Kind.VIDEO, "Cam.mpg",
+                "video/mpeg", CompatResult.Verdict.DIRECT);
+        verdictIs("a DVD VOB is offered", MediaItem.Kind.VIDEO, "Title.vob",
+                "video/x-ms-vob", CompatResult.Verdict.DIRECT);
+
+        // Codec-level MIME types (what metadata readers and newer providers report).
+        verdictIs("H.264 by codec MIME", MediaItem.Kind.VIDEO, "Clip.mp4", "video/avc",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("HEVC 4K is offered", MediaItem.Kind.VIDEO, "4K.mkv", "video/hevc",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("VP9 is offered", MediaItem.Kind.VIDEO, "Clip.webm", "video/x-vnd.on2.vp9",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("AV1 is offered (documented for 4K on this generation)", MediaItem.Kind.VIDEO,
+                "New.mkv", "video/av01", CompatResult.Verdict.DIRECT);
+        verdictIs("Xvid/MPEG-4 Part 2 is offered", MediaItem.Kind.VIDEO, "Old.avi",
+                "video/mp4v-es", CompatResult.Verdict.DIRECT);
+
+        // Documented limitations must still hide what the TV cannot play.
+        verdictIs("HEVC inside .avi is refused (documented limitation)", MediaItem.Kind.VIDEO,
+                "Odd.avi", "video/hevc", CompatResult.Verdict.UNSUPPORTED);
+        verdictIs("Flash video is refused (container is not in the table)",
+                MediaItem.Kind.VIDEO, "Old.flv", "video/x-flv",
+                CompatResult.Verdict.UNSUPPORTED);
+        verdictIs("RealMedia is refused", MediaItem.Kind.VIDEO, "Old.rm",
+                "video/vnd.rn-realvideo", CompatResult.Verdict.UNSUPPORTED);
+        verdictIs("an unreadable video MIME is refused", MediaItem.Kind.VIDEO, "Weird.mxf",
+                "application/mxf", CompatResult.Verdict.UNSUPPORTED);
+
+        // MediaStore sometimes leaves MIME_TYPE empty or generic.
+        verdictIs("an empty MIME is derived from the extension (.mp4)",
+                MediaItem.Kind.VIDEO, "Clip.mp4", "", CompatResult.Verdict.DIRECT);
+        verdictIs("a generic MIME is derived from the extension (.mkv)",
+                MediaItem.Kind.VIDEO, "Clip.mkv", "application/octet-stream",
+                CompatResult.Verdict.DIRECT);
+
+        // Photos: what the TV documents, and what needs a JPEG copy.
+        verdictIs("JPEG photo", MediaItem.Kind.PHOTO, "IMG_1.jpg", "image/jpeg",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("PNG photo", MediaItem.Kind.PHOTO, "Shot.png", "image/png",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("GIF photo", MediaItem.Kind.PHOTO, "Anim.gif", "image/gif",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("WebP photo", MediaItem.Kind.PHOTO, "Shot.webp", "image/webp",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("BMP photo", MediaItem.Kind.PHOTO, "Scan.bmp", "image/bmp",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("HEIC photo is converted, not refused", MediaItem.Kind.PHOTO, "IMG_2.heic",
+                "image/heic", CompatResult.Verdict.PHOTO_CONVERT);
+        verdictIs("AVIF photo is converted", MediaItem.Kind.PHOTO, "IMG_3.avif", "image/avif",
+                CompatResult.Verdict.PHOTO_CONVERT);
+        verdictIs("TIFF photo is converted", MediaItem.Kind.PHOTO, "Scan.tif", "image/tiff",
+                CompatResult.Verdict.PHOTO_CONVERT);
+        verdictIs("RAW (DNG) photo is converted", MediaItem.Kind.PHOTO, "RAW.dng",
+                "image/x-adobe-dng", CompatResult.Verdict.PHOTO_CONVERT);
+        verdictIs("an unknown camera RAW is refused", MediaItem.Kind.PHOTO, "RAW.cr2",
+                "image/x-canon-cr2", CompatResult.Verdict.UNSUPPORTED);
+
+        // A very large JPEG is still shown - with a warning rather than a refusal.
+        MediaItem huge = item(MediaItem.Kind.PHOTO, "Panorama.jpg", "image/jpeg", 9000, 6000);
+        CompatResult hugeResult = new MediaCompat().quick(huge);
+        equal("a 54 MP JPEG is still direct-playable", CompatResult.Verdict.DIRECT,
+                hugeResult.verdict);
+        check("but the risk of the TV's decoder is explained",
+                hugeResult.reasons.size() > 0 && hugeResult.reasons.get(0).contains("40 MP"));
+
+        // Audio: the documented list, plus what needs one conversion.
+        verdictIs("MP3 audio", MediaItem.Kind.AUDIO, "Song.mp3", "audio/mpeg",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("FLAC audio", MediaItem.Kind.AUDIO, "Song.flac", "audio/flac",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("AAC in MP4", MediaItem.Kind.AUDIO, "Song.m4a", "audio/mp4",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("Ogg Vorbis audio (documented as playable)", MediaItem.Kind.AUDIO,
+                "Song.ogg", "audio/ogg", CompatResult.Verdict.DIRECT);
+        verdictIs("WAV/PCM audio", MediaItem.Kind.AUDIO, "Clip.wav", "audio/wav",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("Dolby Digital audio", MediaItem.Kind.AUDIO, "Movie.ac3", "audio/ac3",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("WMA audio", MediaItem.Kind.AUDIO, "Old.wma", "audio/x-ms-wma",
+                CompatResult.Verdict.DIRECT);
+        verdictIs("Opus audio needs one AAC conversion", MediaItem.Kind.AUDIO, "Song.opus",
+                "audio/opus", CompatResult.Verdict.AUDIO_CONVERT);
+        verdictIs("DTS audio needs one AAC conversion", MediaItem.Kind.AUDIO, "Song.dts",
+                "audio/vnd.dts", CompatResult.Verdict.AUDIO_CONVERT);
+        verdictIs("ALAC needs one AAC conversion", MediaItem.Kind.AUDIO, "Song.m4a",
+                "audio/alac", CompatResult.Verdict.AUDIO_CONVERT);
+
+        // The MIME type the TV is actually served must match the verdict.
+        MediaItem heic = item(MediaItem.Kind.PHOTO, "IMG_9.heic", "image/heic", 4032, 3024);
+        CompatResult heicResult = new MediaCompat().quick(heic);
+        equal("a converted photo is served as JPEG", "image/jpeg",
+                MediaCompat.effectiveMime(heic, heicResult));
+        MediaItem opus = item(MediaItem.Kind.AUDIO, "Song.opus", "audio/opus", 0, 0);
+        CompatResult opusResult = new MediaCompat().quick(opus);
+        equal("converted audio is served as AAC in MP4", "audio/mp4",
+                MediaCompat.effectiveMime(opus, opusResult));
+        MediaItem mp4 = item(MediaItem.Kind.VIDEO, "Clip.mp4", "video/mp4", 1920, 1080);
+        equal("direct-played video keeps its own container MIME", "video/mp4",
+                MediaCompat.effectiveMime(mp4, new MediaCompat().quick(mp4)));
+        equal("an empty MIME is filled in from the extension", "image/jpeg",
+                MediaCompat.normaliseMime(item(MediaItem.Kind.PHOTO, "x.jpg", "", 0, 0)));
+        equal("container names are user-readable", "MP4 (MP4 family)",
+                MediaCompat.containerName(item(MediaItem.Kind.VIDEO, "Clip.mp4", "video/mp4", 0, 0)));
+        check("documented containers are recognised",
+                MediaCompat.isKnownVideoContainer(item(MediaItem.Kind.VIDEO, "a.mkv", "", 0, 0))
+                        && MediaCompat.isKnownVideoContainer(
+                                item(MediaItem.Kind.VIDEO, "a.m2ts", "", 0, 0)));
+        check("undocumented containers are not",
+                !MediaCompat.isKnownVideoContainer(item(MediaItem.Kind.VIDEO, "a.flv", "", 0, 0))
+                        && !MediaCompat.isKnownVideoContainer(
+                                item(MediaItem.Kind.VIDEO, "a.rmvb", "", 0, 0)));
+    }
+
+    // -------------------------------------------------------- TV identification
+
+    private static void tvClassification() {
+        // A device description shaped like the published captures of a real LG set.
+        String renderer = "<root><device>"
+                + "<deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>"
+                + "<friendlyName>[LG] webOS TV NANO86VPA</friendlyName>"
+                + "<manufacturer>LG Electronics</manufacturer>"
+                + "<modelName>55NANO86VPA</modelName>"
+                + "<UDN>uuid:9f0a-parent</UDN>"
+                + "<serviceList>"
+                + "<service><serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>"
+                + "<controlURL>/75f8f5e1/AVTransport</controlURL></service>"
+                + "<service><serviceType>urn:schemas-upnp-org:service:RenderingControl:1</serviceType>"
+                + "<controlURL>/75f8f5e1/RenderingControl</controlURL></service>"
+                + "</serviceList></device></root>";
+        String location = "http://192.168.1.50:1588/75f8f5e1/";
+        String lgeHeader = "WebOS/1.0 UPnP/1.0 LGE_DLNA_SDK/1.6.0 [TV][LG]55NANO86VPA/6.5.3";
+        TvDevice tv = TvDevice.parseDescription(location, renderer, lgeHeader);
+        check("LG renderer description parsed", tv != null);
+        check("recognised as an LG device from its server header", tv.isLg());
+        equal("model name read", "55NANO86VPA", tv.modelName);
+        equal("friendly name read", "[LG] webOS TV NANO86VPA", tv.friendlyName);
+        equal("address taken from the description location", "192.168.1.50", tv.address);
+        equal("port taken from the description location", 1588, tv.port);
+        check("remote playback offered", tv.supportsRemotePlayback());
+        check("remote volume offered", tv.supportsRemoteVolume());
+        check("a renderer is not mistaken for a second-screen endpoint",
+                !tv.lgSecondScreen);
+        equal("AVTransport control URL resolved against the location",
+                "http://192.168.1.50:1588/75f8f5e1/AVTransport", tv.avTransportUrl);
+        equal("RenderingControl control URL resolved against the location",
+                "http://192.168.1.50:1588/75f8f5e1/RenderingControl",
+                tv.renderingControlUrl);
+        check("capability summary is user-readable",
+                tv.capabilitySummary() != null && !tv.capabilitySummary().isEmpty());
+
+        String nonLg = "<root><device>"
+                + "<deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>"
+                + "<friendlyName>Some Other Box</friendlyName><manufacturer>ACME</manufacturer>"
+                + "<UDN>uuid:acme</UDN>"
+                + "<serviceList><service>"
+                + "<serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>"
+                + "<controlURL>/avt</controlURL></service></serviceList></device></root>";
+        TvDevice other = TvDevice.parseDescription("http://10.0.0.9:1234/", nonLg,
+                "SomeServer/1.0 UPnP/1.0");
+        check("a non-LG renderer is still usable (DLNA is DLNA)", other != null);
+        check("but it is not claimed to be an LG", !other.isLg());
+        check("its playback capability is still recognised", other.supportsRemotePlayback());
+        equal("control URL resolved for a root-mounted service too",
+                "http://10.0.0.9:1234/avt", other.avTransportUrl);
+
+        String server = "<root><device>"
+                + "<deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>"
+                + "<friendlyName>[LG] webOS TV NANO86VPA</friendlyName>"
+                + "<modelName>55NANO86VPA</modelName><UDN>uuid:9f0a-parent</UDN></device></root>";
+        TvDevice sameTv = TvDevice.parseDescription("http://192.168.1.50:1588/", server,
+                lgeHeader);
+        check("the TV is recognised through its MediaServer face too", sameTv != null
+                && sameTv.isLg());
+        equal("both faces of one TV share a single identity",
+                tv.effectiveId(), sameTv.effectiveId());
+
+        // A TV found by SSDP alone (no description yet) must still be usable and,
+        // once the description arrives, must not become a second entry.
+        TvDevice bare = new TvDevice();
+        bare.udn = "uuid:9f0a-parent";
+        bare.address = "192.168.1.50";
+        bare.port = 1588;
+        bare.serverHeader = lgeHeader;
+        bare.friendlyName = "";
+        bare.mergeFrom(tv);
+        equal("merging fills in the missing name", tv.friendlyName, bare.friendlyName);
+        check("merging keeps one identity", bare.effectiveId().equals(tv.effectiveId()));
+
+        // After a DHCP change the TV announces the same UUID from a new address.
+        TvDevice moved = new TvDevice();
+        moved.udn = "uuid:9f0a-parent";
+        moved.address = "192.168.1.99";
+        moved.port = 1588;
+        TvDevice remerged = TvDevice.parseDescription(location, renderer, lgeHeader);
+        remerged.udn = "uuid:9f0a-parent";
+        remerged.address = "192.168.1.99";
+        equal("an IP change does not create a new device",
+                moved.effectiveId(), remerged.effectiveId());
+        equal("the new address wins", "192.168.1.99", remerged.address);
+
+        // Robustness: discovery must survive whatever is on the network.
+        TvDevice garbage = TvDevice.parseDescription("http://10.0.0.1/",
+                "not xml at all", null);
+        check("a garbage description does not throw and claims no capabilities",
+                garbage != null && !garbage.supportsRemotePlayback()
+                        && !garbage.supportsRemoteVolume());
+
+        // URL joining is what makes remote control possible at all.
+        equal("relative control URL is joined to the location",
+                "http://192.168.1.50:1588/a/b", TvDevice.absoluteUrl(
+                        "http://192.168.1.50:1588/75f8f5e1/", "a/b"));
+        equal("absolute control URL is left alone",
+                "http://10.0.0.5:1234/x", TvDevice.absoluteUrl(
+                        "http://192.168.1.50:1588/", "http://10.0.0.5:1234/x"));
+        equal("host extracted from a control URL", "192.168.1.50",
+                TvDevice.hostOf("http://192.168.1.50:1588/avt"));
+    }
+
     // ------------------------------------------------------- device + SCPDs
 
     private static void deviceDescription() {
@@ -692,6 +963,31 @@ public final class MediaBridgeTests {
         check("device type is announced", hasDevice);
         check("ContentDirectory service is announced (TVs search for it)", hasContent);
         check("rootdevice is announced", hasRoot);
+
+        // What the phone answers when a TV searches: silence here is exactly the
+        // "my phone never shows up on the TV" failure mode.
+        equal("ssdp:all gets every target", 5,
+                SsdpMessages.responsesFor("ssdp:all", uuid).length);
+        equal("a MediaServer search is answered with the device",
+                DeviceDescription.DEVICE_TYPE,
+                SsdpMessages.responsesFor("urn:schemas-upnp-org:device:MediaServer:1", uuid)[0][0]);
+        equal("a ContentDirectory search is answered with the service",
+                DeviceDescription.CONTENT_DIRECTORY_TYPE,
+                SsdpMessages.responsesFor(
+                        "urn:schemas-upnp-org:service:ContentDirectory:1", uuid)[0][0]);
+        equal("a rootdevice search is answered",
+                SsdpMessages.ROOT_DEVICE,
+                SsdpMessages.responsesFor("upnp:rootdevice", uuid)[0][0]);
+        equal("a search for our own UUID is answered",
+                "uuid:" + uuid,
+                SsdpMessages.responsesFor("uuid:" + uuid, uuid)[0][1]);
+        equal("a search for a renderer is not ours to answer", 0,
+                SsdpMessages.responsesFor(
+                        "urn:schemas-upnp-org:device:MediaRenderer:1", uuid).length);
+        equal("an empty search target is ignored", 0,
+                SsdpMessages.responsesFor("", uuid).length);
+        equal("a null search target is ignored", 0,
+                SsdpMessages.responsesFor(null, uuid).length);
 
         // Parsing the TV's announcement, which is how discovery starts.
         String tvNotify = "NOTIFY * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\n"
@@ -879,6 +1175,166 @@ public final class MediaBridgeTests {
             }
         }
         check("the bytes are the file's bytes, not a shifted window", identical);
+    }
+
+    /** HEAD (the TV uses it to probe a file) and two requests on one connection. */
+    private static void headAndKeepAlive() throws Exception {
+        final byte[] payload = new byte[2048];
+        final AtomicInteger served = new AtomicInteger();
+
+        ServerSocket listener = new ServerSocket(0);
+        final AtomicReference<Exception> serverError = new AtomicReference<>();
+        Thread server = new Thread(() -> {
+            try (Socket socket = listener.accept()) {
+                while (served.get() < 2) {
+                    HttpRequest request = HttpRequest.read(socket);
+                    if (request == null) {
+                        break;
+                    }
+                    boolean head = "HEAD".equals(request.method);
+                    HttpResponse response = new HttpResponse()
+                            .header("Accept-Ranges", "bytes")
+                            .body(payload)
+                            .status(200, "OK");
+                    boolean keepAlive = request.keepAlive();
+                    response.writeTo(socket.getOutputStream(), head, keepAlive);
+                    served.incrementAndGet();
+                    if (!keepAlive) {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                serverError.set(e);
+            }
+        });
+        server.setDaemon(true);
+        server.start();
+
+        Socket client = new Socket("127.0.0.1", listener.getLocalPort());
+        client.setSoTimeout(5000);
+        OutputStreamWriter writer = new OutputStreamWriter(client.getOutputStream(), "ISO-8859-1");
+        writer.write("HEAD /media/v1/Clip.mp4 HTTP/1.1\r\nHost: tv\r\nConnection: keep-alive\r\n\r\n");
+        writer.flush();
+        String headResponse = readOneResponse(client, false);
+        check("HEAD answered with 200", headResponse.startsWith("HTTP/1.1 200 OK"));
+        check("HEAD reports the size the body would have",
+                headResponse.contains("Content-Length: 2048"));
+        check("HEAD sent no body", headResponse.endsWith("\r\n\r\n"));
+        check("connection kept alive when the client asks",
+                headResponse.contains("Connection: keep-alive"));
+
+        writer.write("GET /media/v1/Clip.mp4 HTTP/1.1\r\nHost: tv\r\nConnection: close\r\n\r\n");
+        writer.flush();
+        String getResponse = readOneResponse(client, true);
+        check("the same connection serves a second request",
+                getResponse.startsWith("HTTP/1.1 200 OK"));
+        check("the second response carries the body",
+                getResponse.length() > getResponse.indexOf("\r\n\r\n") + 4);
+        check("connection closed when the client asks",
+                getResponse.contains("Connection: close"));
+
+        client.close();
+        server.join(3000);
+        listener.close();
+        check("no server-side error during HEAD/keep-alive", serverError.get() == null,
+                String.valueOf(serverError.get()));
+        equal("both requests served", 2, served.get());
+    }
+
+    /** Real TCP splits requests; the parser must not depend on one read(). */
+    private static void segmentedRequests() throws Exception {
+        final AtomicReference<HttpRequest> received = new AtomicReference<>();
+        final AtomicReference<Exception> failure = new AtomicReference<>();
+        ServerSocket listener = new ServerSocket(0);
+        Thread server = new Thread(() -> {
+            try (Socket socket = listener.accept()) {
+                received.set(HttpRequest.read(socket));
+            } catch (Exception e) {
+                failure.set(e);
+            }
+        });
+        server.setDaemon(true);
+        server.start();
+
+        Socket client = new Socket("127.0.0.1", listener.getLocalPort());
+        java.io.OutputStream out = client.getOutputStream();
+        out.write("POST /upnp/control/content-directory HTTP/1.1\r\nHost: tv\r\n".getBytes("ISO-8859-1"));
+        out.flush();
+        Thread.sleep(60);
+        out.write("SOAPACTION: \"urn:schemas-upnp-org:service:ContentDirectory:1#Browse\"\r\n".getBytes("ISO-8859-1"));
+        out.write("Content-Length: 39\r\n\r\n".getBytes("ISO-8859-1"));
+        out.flush();
+        Thread.sleep(60);
+        out.write("<Browse><ObjectID>0</ObjectID></Bro".getBytes("ISO-8859-1"));
+        out.flush();
+        Thread.sleep(60);
+        try {
+            out.write("wse>".getBytes("ISO-8859-1"));
+            out.flush();
+        } catch (java.io.IOException closed) {
+            // The server answered and closed before the last fragment arrived;
+            // the assertion below then fails on the assembled body, with the
+            // real cause visible in the report.
+        }
+        Thread.sleep(120);
+
+        check("a request split across four TCP writes still parses", failure.get() == null,
+                String.valueOf(failure.get()));
+        HttpRequest request = received.get();
+        check("the split request was received", request != null);
+        if (request != null) {
+            equal("path intact after splitting", "/upnp/control/content-directory", request.path);
+            equal("header from the middle write intact",
+                    "urn:schemas-upnp-org:service:ContentDirectory:1#Browse",
+                    request.header("soapaction").replace("\"", ""));
+            equal("body assembled from two writes", "<Browse><ObjectID>0</ObjectID></Browse>",
+                    request.bodyText());
+        }
+        client.close();
+        server.join(3000);
+        listener.close();
+    }
+
+    /**
+     * Reads exactly one HTTP response off a socket: headers, then the body a
+     * Content-Length promises ({@code expectBody} false for HEAD, where the
+     * length describes the body that was deliberately not sent).
+     */
+    private static String readOneResponse(Socket socket, boolean expectBody) throws Exception {
+        java.io.InputStream in = socket.getInputStream();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int contentLength = -1;
+        int headerEnd = -1;
+        while (headerEnd < 0) {
+            int b = in.read();
+            if (b < 0) {
+                break;
+            }
+            buffer.write(b);
+            byte[] current = buffer.toByteArray();
+            if (current.length >= 4 && current[current.length - 4] == '\r'
+                    && current[current.length - 3] == '\n'
+                    && current[current.length - 2] == '\r'
+                    && current[current.length - 1] == '\n') {
+                headerEnd = current.length;
+            }
+        }
+        String head = new String(buffer.toByteArray(), Charset.forName("ISO-8859-1"));
+        for (String line : head.split("\r\n")) {
+            if (line.toLowerCase(java.util.Locale.US).startsWith("content-length:")) {
+                contentLength = Integer.parseInt(line.substring(15).trim());
+            }
+        }
+        int body = 0;
+        while (expectBody && body < Math.max(0, contentLength)) {
+            int read = in.read();
+            if (read < 0) {
+                break;
+            }
+            buffer.write(read);
+            body++;
+        }
+        return new String(buffer.toByteArray(), Charset.forName("ISO-8859-1"));
     }
 
     private static String readAll(Socket socket) throws Exception {

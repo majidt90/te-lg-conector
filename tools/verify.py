@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import zipfile
 import shutil
 import subprocess
 import sys
@@ -37,13 +38,17 @@ JAVA_SRC = os.path.join(REPO, "app", "src", "main", "java", "com", "lgmediabridg
 VERIFY_SRC = os.path.join(REPO, "tools", "verify")
 HARNESS = os.path.join(VERIFY_SRC, "MediaBridgeTests.java")
 
-# Classes under test: pure Java by design (see the file headers), plus the small
-# set of Android stubs in tools/verify/stubs that keep reference types resolvable.
+# Classes under test. Most are pure Java by design (see the file headers);
+# MediaCompat is included because its codec tables - not its file probing - decide
+# what the TV is offered, and they are plain data operations. It compiles against
+# the platform android.jar and only ever touches the two stubbed classes at run
+# time, which is what makes it testable without a device.
 SOURCES = [
     "core/LogEntry.java",
     "core/LogBus.java",
     "core/Json.java",
     "core/Xml.java",
+    "core/Formats.java",
     "net/HttpRange.java",
     "net/HttpRequest.java",
     "net/HttpResponse.java",
@@ -54,6 +59,7 @@ SOURCES = [
     "dlna/SsdpMessages.java",
     "catalog/MediaItem.java",
     "compat/CompatResult.java",
+    "compat/MediaCompat.java",
     "control/TvDevice.java",
     "control/SoapClient.java",
     "stream/StreamSession.java",
@@ -63,6 +69,37 @@ STUBS = [
     "android/util/Log.java",
     "android/util/LruCache.java",
 ]
+
+
+# Packages the platform jar duplicates from JDK modules. Keeping both on the
+# classpath makes ecj report "the package X is accessible from more than one
+# module", so the platform's copies are removed for this compile only.
+SHADOWED_PREFIXES = ("java/", "javax/", "org/w3c/", "org/xml/")
+
+
+def find_android_jar(tc: str, out: str) -> str | None:
+    """
+    A compile-only android.jar for classes that reference platform types.
+
+    tools/build.py already strips java.*/javax.* from android.jar (the modular JDK
+    supplies those); this strips the remaining duplicates as well, so the harness
+    can import both Android types and, say, org.w3c.dom.Document.
+    """
+    source = None
+    for candidate in (os.path.join(tc, "tools", "android-compile.jar"),
+                      os.path.join(tc, "tools", "android.jar")):
+        if os.path.exists(candidate):
+            source = candidate
+            break
+    if source is None:
+        return None
+    target = os.path.join(out, "android-verify.jar")
+    with zipfile.ZipFile(source) as zin, zipfile.ZipFile(target, "w", zipfile.ZIP_STORED) as zout:
+        for item in zin.infolist():
+            if item.filename.startswith(SHADOWED_PREFIXES):
+                continue
+            zout.writestr(item, zin.read(item.filename))
+    return target
 
 
 def log(msg: str) -> None:
@@ -134,10 +171,15 @@ def main() -> None:
     with open(source_list, "w") as handle:
         handle.write("\n".join(sources))
     started = time.time()
-    compile_result = subprocess.run(
-        [java, "-jar", ecj, "-source", "11", "-target", "11", "-proc:none", "-warn:none",
-         "-d", out, f"@{source_list}"],
-        capture_output=True, text=True)
+    classpath = find_android_jar(args.toolchain, out)
+    if classpath is None:
+        log("note: android.jar not found, compiling pure-Java classes only")
+    compile_command = [java, "-jar", ecj, "-source", "11", "-target", "11", "-proc:none",
+                       "-warn:none", "-d", out]
+    if classpath:
+        compile_command += ["-classpath", classpath]
+    compile_command += [f"@{source_list}"]
+    compile_result = subprocess.run(compile_command, capture_output=True, text=True)
     if compile_result.returncode != 0:
         print(compile_result.stdout[-4000:])
         print(compile_result.stderr[-4000:], file=sys.stderr)

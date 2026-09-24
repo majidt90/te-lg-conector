@@ -78,10 +78,22 @@ lifecycle, **U** = UI.
 XML between phone and TV, the DLNA tokens, the range/time-seek maths and a live
 HTTP exchange). It exists because a regression in any of those shows up on the TV
 as "the phone never appears", "the list is empty" or "seeking is greyed out".
-It found four real wire-format defects during development: a percent-encoded DLNA
-device name shown instead of the TV model, single-part answers to multi-range
-requests, clock-style `npt=0:02:30-` seeks being rejected, and a `resolution`
-attribute written with a typographic `×` instead of the ASCII `x` renderers parse.
+It has found six real defects so far, two of them severity-1:
+
+* **every video would have been hidden from the TV.** Android stores the *container*
+  MIME (`video/mp4`) for ordinary phone videos, and the compatibility check only
+  knew codec MIME types (`video/avc`), so it judged them unsupported - with
+  "hide unsupported" on, the video library would have been empty.
+* **Ogg Vorbis was refused** although webOS documents it as playable, because the
+  documented list had `audio/vorbis` but MediaStore reports `audio/ogg`.
+* the client label showed the percent-encoded DLNA device name (`%5bLG%5dwebOS1-TV`)
+  instead of the TV model, and was never decoded;
+* a multi-range request (`bytes=0-99,200-299`) was answered with a single part
+  pretending to be the whole answer;
+* clock-style time seeks (`TimeSeekRange.dlna.org: npt=0:02:30-`) were rejected,
+  which turned a TV seek into a full-file fetch;
+* `resolution` was written `3840×2160` with a typographic multiplication sign
+  instead of the ASCII `x` renderers parse.
 
 Everything from section 3 onwards still requires the actual phone and TV.
 

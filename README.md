@@ -100,8 +100,9 @@ Useful flags: `--variant release`, `--out dist`, `--clean`, and for release buil
 
 The wire format is covered by a device-free test suite: it compiles the same
 protocol classes the APK uses (DIDL-Lite, SCPDs, SOAP, SSDP, range maths, the HTTP
-framing) on a plain JVM and runs ~220 assertions, including a real HTTP exchange
-over a loopback socket.
+framing) on a plain JVM and runs 318 assertions, including a real HTTP exchange
+over a loopback socket and the codec decision tables that decide what the TV is
+offered.
 
 ```bash
 python3 tools/verify.py            # add --verbose to see every check

@@ -38,6 +38,45 @@ public final class SsdpMessages {
         };
     }
 
+    /**
+     * The announcements to send in reply to an {@code M-SEARCH} for {@code st},
+     * as {@code {NT, USN}} pairs - or an empty array when the search is not for
+     * this device.
+     *
+     * This is where a silent server is born: a television that searches for a
+     * target the phone does not recognise concludes no server exists and never
+     * shows it, so every target a MediaServer could plausibly be asked about is
+     * answered, including the device's own UUID.
+     */
+    public static String[][] responsesFor(String st, String uuid) {
+        if (st == null || st.isEmpty()) {
+            return new String[0][];
+        }
+        String usn = "uuid:" + uuid;
+        if (ALL.equals(st)) {
+            return announcementTargets(uuid);
+        }
+        if (ROOT_DEVICE.equals(st)) {
+            return new String[][]{{ROOT_DEVICE, usn + "::" + ROOT_DEVICE}};
+        }
+        if (st.contains("MediaServer")) {
+            return new String[][]{{DeviceDescription.DEVICE_TYPE,
+                    usn + "::" + DeviceDescription.DEVICE_TYPE}};
+        }
+        if (st.contains("ContentDirectory")) {
+            return new String[][]{{DeviceDescription.CONTENT_DIRECTORY_TYPE,
+                    usn + "::" + DeviceDescription.CONTENT_DIRECTORY_TYPE}};
+        }
+        if (st.contains("ConnectionManager")) {
+            return new String[][]{{DeviceDescription.CONNECTION_MANAGER_TYPE,
+                    usn + "::" + DeviceDescription.CONNECTION_MANAGER_TYPE}};
+        }
+        if (st.equals(usn)) {
+            return new String[][]{{usn, usn}};
+        }
+        return new String[0][];
+    }
+
     /** A search request, as sent by a control point (the phone looks for renderers with it). */
     public static String searchRequest(String target, int mxSeconds) {
         return "M-SEARCH * HTTP/1.1\r\n"

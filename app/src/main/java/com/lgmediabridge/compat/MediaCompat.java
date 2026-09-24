@@ -51,6 +51,7 @@ public final class MediaCompat {
     private static final Set<String> AUDIO_DIRECT = new HashSet<>(Arrays.asList(
             "audio/mpeg", "audio/mp3", "audio/x-mpeg", "audio/mp4a-latm", "audio/mp4",
             "audio/aac", "audio/aac-adts", "audio/x-aac", "audio/flac", "audio/x-flac",
+            "audio/ogg", "audio/x-ogg",
             "audio/vorbis", "audio/x-vorbis", "audio/x-ms-wma", "audio/wma",
             "audio/x-ms-wax", "audio/ac3", "audio/eac3", "audio/x-ac3", "audio/raw",
             "audio/wav", "audio/x-wav", "audio/vnd.wave", "audio/l16", "audio/pcm"));
@@ -77,6 +78,24 @@ public final class MediaCompat {
     private static final Set<String> CONTAINER_WMV = new HashSet<>(Arrays.asList("asf", "wmv"));
     private static final Set<String> CONTAINER_3GP = new HashSet<>(Arrays.asList("3gp", "3g2"));
     private static final Set<String> CONTAINER_VOB = new HashSet<>(Arrays.asList("vob"));
+
+    /**
+     * MIME types that describe the container rather than the codec inside it.
+     *
+     * This distinction is the difference between working and not: Android's
+     * MediaStore reports {@code video/mp4} (and {@code video/x-matroska},
+     * {@code video/webm}, {@code video/mp2t}, ...) for ordinary phone videos, so
+     * treating a container MIME as an unknown codec would judge every video on the
+     * phone unsupported - and with "hide unsupported" on, the television would show
+     * an empty library. Only the codec lists may reject a file, and only a codec
+     * MIME can appear in them.
+     */
+    private static final Set<String> VIDEO_CONTAINER_MIMES = new HashSet<>(Arrays.asList(
+            "video/mp4", "video/quicktime", "video/x-matroska", "video/webm", "video/mp2t",
+            "video/x-msvideo", "video/avi", "video/msvideo", "video/x-ms-wmv", "video/x-ms-asf",
+            "video/3gpp", "video/3gpp2",
+            "video/mpeg", "video/mpeg2", "video/vnd.dlna.mpeg-tts", "video/x-ms-vob",
+            "video/vob", "video/divx", "video/x-divx"));
 
     private static final Set<String> VIDEO_ALL = new HashSet<>(Arrays.asList(
             "video/avc", "video/hevc", "video/mp4v-es", "video/mpeg4", "video/mpeg2",
@@ -162,6 +181,11 @@ public final class MediaCompat {
                 } else if (mime == null) {
                     reasons.add("Unknown video codec.");
                     result = new CompatResult(CompatResult.Verdict.UNSUPPORTED, reasons, details, false);
+                } else if (isContainerMime(mime)) {
+                    reasons.add(containerName(item) + " is a container the webOS 6.0 table lists. The "
+                            + "codec inside it is only knowable by opening the file, so the video is "
+                            + "offered as it is and the TV's own decoder decides.");
+                    result = new CompatResult(CompatResult.Verdict.DIRECT, reasons, details, false);
                 } else if (!VIDEO_ALL.contains(mime) && !VIDEO_VP.contains(mime)) {
                     reasons.add(codecName(mime) + " is not in the webOS 6.0 video codec list.");
                     result = new CompatResult(CompatResult.Verdict.UNSUPPORTED, reasons, details, false);
@@ -355,7 +379,16 @@ public final class MediaCompat {
             reasons.add("Could not identify the video codec; the TV may refuse this file.");
             return new CompatResult(CompatResult.Verdict.UNSUPPORTED, reasons, details, inspected);
         }
-        if (!VIDEO_ALL.contains(videoMime) && !VIDEO_VP.contains(videoMime)) {
+        if (isContainerMime(videoMime)) {
+            // The file could not be inspected: the container is documented, the
+            // codec is unknown. Offering it is the only honest answer, because
+            // rejecting it here would hide media the TV may well play.
+            if (!inspected) {
+                reasons.add("The tracks of this file could not be read on the phone, so only the "
+                        + containerName(item) + " container could be checked. The TV may still play "
+                        + "it - if it does not, the file itself is the reason.");
+            }
+        } else if (!VIDEO_ALL.contains(videoMime) && !VIDEO_VP.contains(videoMime)) {
             reasons.add(codecName(videoMime) + " is not in the webOS 6.0 video codec list.");
             return new CompatResult(CompatResult.Verdict.UNSUPPORTED, reasons, details, inspected);
         }
@@ -424,6 +457,11 @@ public final class MediaCompat {
         return false;
     }
 
+    /** True when a MIME type names a container rather than a codec. */
+    public static boolean isContainerMime(String mime) {
+        return mime != null && VIDEO_CONTAINER_MIMES.contains(mime);
+    }
+
     public static boolean isKnownVideoContainer(MediaItem item) {
         String extension = item.extension();
         return CONTAINER_MP4.contains(extension) || CONTAINER_MKV.contains(extension)
@@ -489,6 +527,12 @@ public final class MediaCompat {
             case "audio/amr": case "audio/amr-nb": case "audio/amr-wb": return "AMR";
             case "audio/vnd.dts": case "audio/x-dts": return "DTS";
             case "audio/true-hd": return "Dolby TrueHD";
+            case "video/mp4": case "video/quicktime": return "MP4 container (codec read on demand)";
+            case "video/x-matroska": case "video/webm": return "Matroska container (codec read on demand)";
+            case "video/mp2t": return "MPEG-TS container (codec read on demand)";
+            case "video/x-msvideo": case "video/divx": case "video/x-divx":
+                return "AVI container (codec read on demand)";
+            case "video/x-ms-asf": return "ASF container (codec read on demand)";
             default: return mime;
         }
     }

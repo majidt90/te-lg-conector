@@ -160,7 +160,8 @@ public final class SsdpServer {
         if (st == null) {
             return;
         }
-        if (!matches(st)) {
+        String[][] answers = SsdpMessages.responsesFor(st, uuid);
+        if (answers.length == 0) {
             return;
         }
         searchCount.incrementAndGet();
@@ -172,35 +173,12 @@ public final class SsdpServer {
             Thread.currentThread().interrupt();
             return;
         }
-        List<String> responses = new ArrayList<>();
-        String usn = "uuid:" + uuid;
-        if (st.equals("ssdp:all")) {
-            responses.add(response("upnp:rootdevice", usn + "::upnp:rootdevice"));
-            responses.add(response(usn, usn));
-            responses.add(response(DeviceDescription.DEVICE_TYPE, usn + "::" + DeviceDescription.DEVICE_TYPE));
-            responses.add(response(DeviceDescription.CONTENT_DIRECTORY_TYPE,
-                    usn + "::" + DeviceDescription.CONTENT_DIRECTORY_TYPE));
-            responses.add(response(DeviceDescription.CONNECTION_MANAGER_TYPE,
-                    usn + "::" + DeviceDescription.CONNECTION_MANAGER_TYPE));
-        } else if (st.equals("upnp:rootdevice")) {
-            responses.add(response("upnp:rootdevice", usn + "::upnp:rootdevice"));
-        } else if (st.contains("MediaServer")) {
-            responses.add(response(DeviceDescription.DEVICE_TYPE, usn + "::" + DeviceDescription.DEVICE_TYPE));
-        } else if (st.contains("ContentDirectory")) {
-            responses.add(response(DeviceDescription.CONTENT_DIRECTORY_TYPE,
-                    usn + "::" + DeviceDescription.CONTENT_DIRECTORY_TYPE));
-        } else if (st.contains("ConnectionManager")) {
-            responses.add(response(DeviceDescription.CONNECTION_MANAGER_TYPE,
-                    usn + "::" + DeviceDescription.CONNECTION_MANAGER_TYPE));
-        } else if (st.contains(uuid)) {
-            responses.add(response(usn, usn));
-        }
         MulticastSocket current = socket;
         if (current == null) {
             return;
         }
-        for (String response : responses) {
-            byte[] bytes = response.getBytes(ASCII);
+        for (String[] answer : answers) {
+            byte[] bytes = response(answer[0], answer[1]).getBytes(ASCII);
             try {
                 current.send(new DatagramPacket(bytes, bytes.length,
                         new InetSocketAddress(packet.getAddress(), packet.getPort())));
