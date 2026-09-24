@@ -402,7 +402,7 @@ public final class MediaServerRuntime {
         session.setState(converted ? "converting" : "streaming");
 
         if (result.verdict == CompatResult.Verdict.PHOTO_CONVERT && !settings.photoConvert()) {
-            LogBus.get().w(TAG, "refused " + item.displayName()
+            LogBus.get().w(TAG, "refused " + item.displayName
                     + ": photo conversion is switched off");
             response.status(415, "Unsupported Media Type")
                     .header("Content-Type", "text/plain; charset=utf-8")
